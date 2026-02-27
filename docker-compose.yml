@@ -6,5 +6,3 @@ services:
       dockerfile: Dockerfile
     ports:
       - ${APP_PORT}:${APP_PORT}
-    environment:
-      - SERVER_PORT=${APP_PORT}
