@@ -1,0 +1,8 @@
+services:
+  lab1:
+    image: lab1:1.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - ${APP_PORT}:${APP_PORT}
