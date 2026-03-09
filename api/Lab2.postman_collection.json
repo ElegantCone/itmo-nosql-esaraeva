@@ -1,0 +1,58 @@
+{
+  "info": {
+    "_postman_id": "bfd3466e-0c51-4051-92a6-8e4bed877dc5",
+    "name": "Lab2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "24915633",
+    "_collection_link": "https://go.postman.co/collection/24915633-bfd3466e-0c51-4051-92a6-8e4bed877dc5?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Session",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/session",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "session"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

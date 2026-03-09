@@ -1,8 +1,17 @@
 services:
-  lab1:
-    image: lab1:1.0.0
+  backend:
+    image: lab2:1.0.0
+    env_file:
+      - .env.local
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - ${APP_PORT}:${APP_PORT}
+      - "5005:5005" # java debug
+    environment:
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005" #only for java debug
+  redis:
+    image: redis:latest
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
