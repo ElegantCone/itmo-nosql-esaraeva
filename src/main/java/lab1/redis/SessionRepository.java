@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @Repository
 @RequiredArgsConstructor
@@ -38,7 +37,7 @@ public class SessionRepository {
                     RedisHashCommands.HashFieldSetOption.upsert(),
                     Expiration.seconds(sessionTtl)
             );
-            if (created) {
+            if (Boolean.TRUE.equals(created)) {
                 return sessionId;
             }
         }
@@ -47,8 +46,14 @@ public class SessionRepository {
 
     public void refresh(String sessionId) {
         SessionIdUtils.validateSessionId(sessionId);
-        redisTemplate.expire(prefix + sessionId, sessionTtl, TimeUnit.SECONDS);
-        redisTemplate.opsForHash().put(prefix + sessionId, "updated_at", Instant.now().toString());
+        redisTemplate.opsForHash().putAndExpire(
+                prefix + sessionId,
+                Map.of(
+                        "updated_at", Instant.now().toString()
+                ),
+                RedisHashCommands.HashFieldSetOption.upsert(),
+                Expiration.seconds(sessionTtl)
+        );
     }
 
     public boolean isSessionPresented(String sessionId) {
