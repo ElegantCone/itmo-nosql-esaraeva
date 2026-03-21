@@ -15,9 +15,7 @@ public class SessionIdUtils {
         for (byte b : bytes) {
             sessionIdBuilder.append(String.format("%02x", b));
         }
-        var sessionId = sessionIdBuilder.toString();
-        validateSessionId(sessionId);
-        return sessionId;
+        return sessionIdBuilder.toString();
     }
 
     public static void validateSessionId(String sessionId) {

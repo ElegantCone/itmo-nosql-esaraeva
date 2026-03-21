@@ -1,7 +1,8 @@
 package lab1.api;
 
 import jakarta.servlet.http.HttpServletRequest;
-import lab1.redis.CookieRepository;
+import lab1.CookieController;
+import lab1.redis.SessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -15,7 +16,8 @@ import tools.jackson.databind.node.JsonNodeFactory;
 @RequiredArgsConstructor
 public class ActuatorEndpoint {
 
-    private final CookieRepository cookieRepository;
+    private final SessionRepository sessionRepository;
+    private final CookieController cookieController;
 
     @GetMapping("/health")
     public ResponseEntity<?> health(HttpServletRequest request) {
@@ -23,10 +25,10 @@ public class ActuatorEndpoint {
         body.put("status", "ok");
         var response = ResponseEntity.ok();
         var cookies = request.getCookies();
-        var optionalCookie = cookieRepository.getCookie(cookies);
+        var optionalCookie = cookieController.getCookie(cookies);
         if (optionalCookie.isPresent()) {
             var cookie = optionalCookie.get();
-            return response.header(HttpHeaders.SET_COOKIE, cookieRepository.buildCookieResponse(cookie.getValue()).toString()).body(body);
+            return response.header(HttpHeaders.SET_COOKIE, cookieController.buildCookieResponse(cookie.getValue()).toString()).body(body);
         }
         return ResponseEntity.ok().body(body);
     }
@@ -35,16 +37,19 @@ public class ActuatorEndpoint {
     public ResponseEntity<?> session(HttpServletRequest request) {
         var cookies = request.getCookies();
         if (cookies == null) {
-            var cookie = cookieRepository.createSession();
-            return ResponseEntity.status(HttpStatus.CREATED).header(HttpHeaders.SET_COOKIE, cookie.toString()).build();
+            var sessionId = sessionRepository.createSession();
+            return ResponseEntity.status(HttpStatus.CREATED).header(HttpHeaders.SET_COOKIE, cookieController.buildCookieResponse(sessionId).toString()).build();
         }
-        var optionalCookie = cookieRepository.getCookie(cookies);
+        var optionalCookie = cookieController.getCookie(cookies);
         if (optionalCookie.isPresent()) {
             var cookie = optionalCookie.get();
-            if (cookieRepository.isSessionPresented(cookie)) {
-                return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookieRepository.refresh(cookie.getValue()).toString()).build();
+            var key = cookie.getValue();
+            if (sessionRepository.isSessionPresented(key)) {
+                sessionRepository.refresh(key);
+                return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookieController.buildCookieResponse(key).toString()).build();
             }
         }
-        return ResponseEntity.status(HttpStatus.CREATED).header(HttpHeaders.SET_COOKIE, cookieRepository.createSession().toString()).build();
+        var sessionId = sessionRepository.createSession();
+        return ResponseEntity.status(HttpStatus.CREATED).header(HttpHeaders.SET_COOKIE, cookieController.buildCookieResponse(sessionId).toString()).build();
     }
 }
