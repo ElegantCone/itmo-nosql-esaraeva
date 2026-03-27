@@ -6,20 +6,17 @@ import lab1.model.CreateEventRequest;
 import lab1.model.EventSearchCriteria;
 import lab1.service.EventService;
 import lab1.service.SessionService;
-import lab1.utils.CommonUtils;
 import lab1.utils.CommonUtils.RequiredFieldInvalidException;
 import lab1.utils.EventUtils.DuplicateEventException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 import static lab1.api.ResponseUtils.*;
+import static lab1.utils.CommonUtils.parseUnsignedInt;
+import static lab1.utils.CommonUtils.validateRequiredString;
 
 @RestController
 @RequiredArgsConstructor
@@ -33,7 +30,7 @@ public class EventController {
         var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
         var userId = sessionService.getUserId(sessionId);
         if (userId.isEmpty()) {
-            return unauthorizeResponse(sessionService.buildCookie(sessionId));
+            return unauthorizedEmptyResponse(sessionService.buildCookie(sessionId));
         }
 
         try {
@@ -57,12 +54,20 @@ public class EventController {
             @RequestParam(name = "offset", required = false) String offset
     ) {
         try {
-            var parsedLimit = CommonUtils.parseUnsignedInt(limit, "limit");
-            var parsedOffset = CommonUtils.parseUnsignedInt(offset, "offset");
-            CommonUtils.validateRequiredString(title, "title");
-            return okResponse(sessionService.getResponseCookie(request.getCookies()).orElse(null), eventService.findAll(new EventSearchCriteria(title, parsedLimit, parsedOffset)));
+            Integer limitValue = null;
+            Integer offsetValue = null;
+            if (limit != null) {
+               limitValue = parseUnsignedInt(limit, "limit");
+            }
+            if (offset != null) {
+                offsetValue = parseUnsignedInt(offset, "offset");
+            }
+            if (title != null) {
+                validateRequiredString(title, "title");
+            }
+            return okResponse(sessionService.getResponseCookie(request.getCookies()).orElse(null), eventService.findAll(new EventSearchCriteria(title, limitValue, offsetValue)));
         } catch (RequiredFieldInvalidException exception) {
-            return invalidFieldResponse(request, exception.getMessage(), sessionService);
+            return invalidParameterResponse(request, exception.getMessage(), sessionService);
         }
     }
 }

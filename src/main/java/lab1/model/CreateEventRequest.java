@@ -7,6 +7,7 @@ import lombok.Setter;
 
 import java.util.Map;
 
+import static lab1.utils.CommonUtils.validateRequiredDateTime;
 import static lab1.utils.CommonUtils.validateRequiredString;
 import static lab1.utils.EventUtils.*;
 
@@ -24,8 +25,10 @@ public class CreateEventRequest {
     public CreateEventRequest(Map<String, String> body) {
         title = validateRequiredString(body.get(TITLE_FIELD), TITLE_FIELD);
         address = validateRequiredString(body.get(ADDRESS_FIELD), ADDRESS_FIELD);
-        startedAt = validateRequiredString(body.get(STARTED_AT_FIELD), STARTED_AT_FIELD);
-        finishedAt = validateRequiredString(body.get(FINISHED_AT_FIELD), FINISHED_AT_FIELD);
+        startedAt = body.get(STARTED_AT_FIELD);
+        validateRequiredDateTime(startedAt, STARTED_AT_FIELD);
+        finishedAt = body.get(FINISHED_AT_FIELD);
+        validateRequiredDateTime(finishedAt, FINISHED_AT_FIELD);
         description = validateRequiredString(body.get(DESCRIPTION_FIELD), DESCRIPTION_FIELD);
     }
 }
