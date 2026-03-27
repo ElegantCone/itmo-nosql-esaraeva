@@ -15,8 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 import static lab1.api.ResponseUtils.*;
-import static lab1.utils.CommonUtils.parseUnsignedIntParameter;
-import static lab1.utils.CommonUtils.validatedDateTimeParameter;
+import static lab1.utils.CommonUtils.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -63,7 +62,7 @@ public class EventController {
                 offsetValue = parseUnsignedIntParameter(offset, "offset");
             }
             if (title != null) {
-                validatedDateTimeParameter(title, "title");
+                validateStringParameter(title, "title");
             }
             return okResponse(sessionService.getResponseCookie(request.getCookies()).orElse(null), eventService.findAll(new EventSearchCriteria(title, limitValue, offsetValue)));
         } catch (FieldInvalidException exception) {

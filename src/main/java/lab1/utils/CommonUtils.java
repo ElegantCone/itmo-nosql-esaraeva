@@ -11,6 +11,13 @@ public class CommonUtils {
         return value;
     }
 
+    public static String validateStringParameter(String value, String parameterName) {
+        if (!checkIfStringIsCorrect(value)) {
+            throw new ParameterInvalidException(parameterName);
+        }
+        return value;
+    }
+
     private static boolean checkIfStringIsCorrect(String value) {
         return value != null && !value.isBlank();
     }
