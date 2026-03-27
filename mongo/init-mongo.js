@@ -5,8 +5,8 @@ db.createUser({
   pwd: process.env.MONGODB_PASSWORD,
   roles: [
     {
-      role: "readWrite",
-      db: process.env.MONGODB_DATABASE
+        role: "dbOwner",
+        db: process.env.MONGODB_DATABASE
     }
   ]
 });
