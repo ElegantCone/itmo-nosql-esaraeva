@@ -48,6 +48,6 @@ public class AuthController {
         if (existingSessionId != null) {
             sessionService.deleteSession(existingSessionId);
         }
-        return noContentResponse(sessionService.buildExpiredCookie(existingSessionId));
+        return unauthorizedEmptyResponse(sessionService.buildExpiredCookie(existingSessionId));
     }
 }
