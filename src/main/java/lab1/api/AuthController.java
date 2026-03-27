@@ -1,0 +1,53 @@
+package lab1.api;
+
+import jakarta.servlet.http.HttpServletRequest;
+import lab1.service.SessionService;
+import lab1.service.UserService;
+import lab1.utils.CommonUtils.RequiredFieldInvalidException;
+import lab1.utils.UserUtils;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
+
+import static lab1.api.ResponseUtils.*;
+import static lab1.utils.UserUtils.PASSWORD_FIELD;
+import static lab1.utils.UserUtils.USERNAME_FIELD;
+
+@RestController
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final UserService userService;
+    private final SessionService sessionService;
+
+    @PostMapping("/auth/login")
+    public ResponseEntity<?> login(HttpServletRequest request, @RequestBody Map<String, String> body) {
+        try {
+            var username = UserUtils.validateRequiredString(body.get(USERNAME_FIELD), USERNAME_FIELD);
+            var password = UserUtils.validateRequiredString(body.get(PASSWORD_FIELD), PASSWORD_FIELD);
+
+            var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
+            var user = userService.authenticate(username, password);
+            if (user.isEmpty()) {
+                return unauthorizeResponse(sessionService.buildCookie(sessionId));
+            }
+            sessionService.assignUser(sessionId, user.get().getId());
+            return noContentResponse(sessionService.buildCookie(sessionId));
+        } catch (RequiredFieldInvalidException exception) {
+            return invalidFieldResponse(request, exception.getMessage(), sessionService);
+        }
+    }
+
+    @PostMapping("/auth/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        var existingSessionId = sessionService.findExistingSessionId(request.getCookies()).orElse(null);
+        if (existingSessionId != null) {
+            sessionService.deleteSession(existingSessionId);
+        }
+        return noContentResponse(sessionService.buildExpiredCookie(existingSessionId));
+    }
+}

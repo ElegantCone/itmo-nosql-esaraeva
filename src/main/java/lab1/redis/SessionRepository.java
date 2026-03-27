@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -22,6 +23,9 @@ public class SessionRepository {
     private final static String prefix = "sid:";
     public final static String PATH = "/";
     public final static String SESSION_KEY = "X-Session-Id";
+    private final static String createdAtField = "created_at";
+    private final static String updatedAtField = "updated_at";
+    private final static String userField = "user_id";
 
     public String createSession() {
         for (var i = 0; i < 3; i++) {
@@ -31,8 +35,8 @@ public class SessionRepository {
             var created = redisTemplate.opsForHash().putAndExpire(
                     key,
                     Map.of(
-                            "created_at", now,
-                            "updated_at", now
+                            createdAtField, now,
+                            updatedAtField, now
                     ),
                     RedisHashCommands.HashFieldSetOption.upsert(),
                     Expiration.seconds(sessionTtl)
@@ -49,7 +53,7 @@ public class SessionRepository {
         redisTemplate.opsForHash().putAndExpire(
                 prefix + sessionId,
                 Map.of(
-                        "updated_at", Instant.now().toString()
+                        updatedAtField, Instant.now().toString()
                 ),
                 RedisHashCommands.HashFieldSetOption.upsert(),
                 Expiration.seconds(sessionTtl)
@@ -58,5 +62,32 @@ public class SessionRepository {
 
     public boolean isSessionPresented(String sessionId) {
         return redisTemplate.hasKey(prefix + sessionId);
+    }
+
+    public void assignUser(String sessionId, String userId) {
+        SessionIdUtils.validateSessionId(sessionId);
+        redisTemplate.opsForHash().putAndExpire(
+                prefix + sessionId,
+                Map.of(
+                        userField, userId,
+                        updatedAtField, Instant.now().toString()
+                ),
+                RedisHashCommands.HashFieldSetOption.upsert(),
+                Expiration.seconds(sessionTtl)
+        );
+    }
+
+    public Optional<String> getUserId(String sessionId) {
+        SessionIdUtils.validateSessionId(sessionId);
+        var value = redisTemplate.opsForHash().get(prefix + sessionId, userField);
+        if (value == null) {
+            return Optional.empty();
+        }
+        return Optional.of(value.toString());
+    }
+
+    public void deleteSession(String sessionId) {
+        SessionIdUtils.validateSessionId(sessionId);
+        redisTemplate.delete(prefix + sessionId);
     }
 }
