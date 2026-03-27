@@ -30,7 +30,7 @@ public class EventController {
         var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
         var userId = sessionService.getUserId(sessionId);
         if (userId.isEmpty()) {
-            return unauthorizedEmptyResponse(sessionService.buildCookie(sessionId));
+            return unauthorizedEmptyResponse();
         }
 
         try {
