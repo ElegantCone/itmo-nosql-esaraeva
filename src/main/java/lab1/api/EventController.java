@@ -6,7 +6,7 @@ import lab1.model.CreateEventRequest;
 import lab1.model.EventSearchCriteria;
 import lab1.service.EventService;
 import lab1.service.SessionService;
-import lab1.utils.CommonUtils.RequiredFieldInvalidException;
+import lab1.utils.CommonUtils.FieldInvalidException;
 import lab1.utils.EventUtils.DuplicateEventException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 import static lab1.api.ResponseUtils.*;
-import static lab1.utils.CommonUtils.parseUnsignedInt;
-import static lab1.utils.CommonUtils.validateRequiredString;
+import static lab1.utils.CommonUtils.parseUnsignedIntParameter;
+import static lab1.utils.CommonUtils.validatedDateTimeParameter;
 
 @RestController
 @RequiredArgsConstructor
@@ -41,8 +41,8 @@ public class EventController {
             return createdResponse(sessionService.buildCookie(sessionId), new IdResponse(eventId));
         } catch (DuplicateEventException exception) {
             return conflictResponse(exception.getMessage(), sessionService.buildCookie(sessionId));
-        } catch (RequiredFieldInvalidException ex) {
-            return invalidFieldResponse(request, ex.getMessage(), sessionService);
+        } catch (FieldInvalidException ex) {
+            return invalidResponse(request, ex.getMessage(), sessionService);
         }
     }
 
@@ -57,17 +57,17 @@ public class EventController {
             Integer limitValue = null;
             Integer offsetValue = null;
             if (limit != null) {
-               limitValue = parseUnsignedInt(limit, "limit");
+               limitValue = parseUnsignedIntParameter(limit, "limit");
             }
             if (offset != null) {
-                offsetValue = parseUnsignedInt(offset, "offset");
+                offsetValue = parseUnsignedIntParameter(offset, "offset");
             }
             if (title != null) {
-                validateRequiredString(title, "title");
+                validatedDateTimeParameter(title, "title");
             }
             return okResponse(sessionService.getResponseCookie(request.getCookies()).orElse(null), eventService.findAll(new EventSearchCriteria(title, limitValue, offsetValue)));
-        } catch (RequiredFieldInvalidException exception) {
-            return invalidParameterResponse(request, exception.getMessage(), sessionService);
+        } catch (FieldInvalidException exception) {
+            return invalidResponse(request, exception.getMessage(), sessionService);
         }
     }
 }

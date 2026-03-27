@@ -30,16 +30,16 @@ public class EventListItemResponse {
     String finishedAt;
 
     public void validate() throws IllegalArgumentException {
-        CommonUtils.validateRequiredString(id, "id");
-        CommonUtils.validateRequiredString(title, "title");
-        CommonUtils.validateRequiredString(description, "description");
+        CommonUtils.validateStringField(id, "id");
+        CommonUtils.validateStringField(title, "title");
+        CommonUtils.validateStringField(description, "description");
         if (location == null) {
-            throw new CommonUtils.RequiredFieldInvalidException("location");
+            throw new CommonUtils.FieldInvalidException("location");
         }
-        CommonUtils.validateRequiredDateTime(createdAt, "created_at");
-        CommonUtils.validateRequiredString(createdBy, "created_by");
-        CommonUtils.validateRequiredDateTime(startedAt, "started_at");
-        CommonUtils.validateRequiredDateTime(finishedAt, "finished_at");
+        CommonUtils.validatedDateTimeField(createdAt, "created_at");
+        CommonUtils.validateStringField(createdBy, "created_by");
+        CommonUtils.validatedDateTimeField(startedAt, "started_at");
+        CommonUtils.validatedDateTimeField(finishedAt, "finished_at");
     }
 
 }

@@ -27,9 +27,9 @@ public class UserController {
     @PostMapping("/users")
     public ResponseEntity<?> createUser(HttpServletRequest request, @RequestBody Map<String, String> body) {
         try {
-            var fullName = UserUtils.validateRequiredString(body.get(FULL_NAME_FIELD), FULL_NAME_FIELD);
-            var username = UserUtils.validateRequiredString(body.get(USERNAME_FIELD), USERNAME_FIELD);
-            var password = UserUtils.validateRequiredString(body.get(PASSWORD_FIELD), PASSWORD_FIELD);
+            var fullName = UserUtils.validateStringField(body.get(FULL_NAME_FIELD), FULL_NAME_FIELD);
+            var username = UserUtils.validateStringField(body.get(USERNAME_FIELD), USERNAME_FIELD);
+            var password = UserUtils.validateStringField(body.get(PASSWORD_FIELD), PASSWORD_FIELD);
 
             try {
                 var userId = userService.create(new CreateUserRequest(fullName, username, password));
@@ -39,8 +39,8 @@ public class UserController {
             } catch (UserAlreadyExistsException exception) {
                 return conflictResponse(request, exception.getMessage(), sessionService);
             }
-        } catch (RequiredFieldInvalidException exception) {
-            return invalidFieldResponse(request, exception.getMessage(), sessionService);
+        } catch (FieldInvalidException exception) {
+            return invalidResponse(request, exception.getMessage(), sessionService);
         }
     }
 }

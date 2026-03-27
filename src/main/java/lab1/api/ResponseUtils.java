@@ -9,18 +9,11 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 
 public class ResponseUtils {
-    public static ResponseEntity<?> invalidFieldResponse(HttpServletRequest request, String message, SessionService sessionService) {
+    public static ResponseEntity<?> invalidResponse(HttpServletRequest request, String message, SessionService sessionService) {
         var response = ResponseEntity.badRequest();
         sessionService.refreshExistingSession(request.getCookies())
                 .ifPresent(sessionId -> response.header(HttpHeaders.SET_COOKIE, sessionService.buildCookie(sessionId).toString()));
         return response.body(new ApiErrorResponse(message));
-    }
-
-    public static ResponseEntity<?> invalidParameterResponse(HttpServletRequest request, String parameter, SessionService sessionService) {
-        var response = ResponseEntity.badRequest();
-        sessionService.refreshExistingSession(request.getCookies())
-                .ifPresent(sessionId -> response.header(HttpHeaders.SET_COOKIE, sessionService.buildCookie(sessionId).toString()));
-        return response.body(new ApiErrorResponse("invalid " + parameter + " parameter"));
     }
 
     public static ResponseEntity<?> conflictResponse(HttpServletRequest request, String message, SessionService sessionService) {

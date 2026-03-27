@@ -3,7 +3,7 @@ package lab1.api;
 import jakarta.servlet.http.HttpServletRequest;
 import lab1.service.SessionService;
 import lab1.service.UserService;
-import lab1.utils.CommonUtils.RequiredFieldInvalidException;
+import lab1.utils.CommonUtils.FieldInvalidException;
 import lab1.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,8 +27,8 @@ public class AuthController {
     @PostMapping("/auth/login")
     public ResponseEntity<?> login(HttpServletRequest request, @RequestBody Map<String, String> body) {
         try {
-            var username = UserUtils.validateRequiredString(body.get(USERNAME_FIELD), USERNAME_FIELD);
-            var password = UserUtils.validateRequiredString(body.get(PASSWORD_FIELD), PASSWORD_FIELD);
+            var username = UserUtils.validateStringField(body.get(USERNAME_FIELD), USERNAME_FIELD);
+            var password = UserUtils.validateStringField(body.get(PASSWORD_FIELD), PASSWORD_FIELD);
 
             var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
             var user = userService.authenticate(username, password);
@@ -37,8 +37,8 @@ public class AuthController {
             }
             sessionService.assignUser(sessionId, user.get().getId());
             return noContentResponse(sessionService.buildCookie(sessionId));
-        } catch (RequiredFieldInvalidException exception) {
-            return invalidFieldResponse(request, exception.getMessage(), sessionService);
+        } catch (FieldInvalidException exception) {
+            return invalidResponse(request, exception.getMessage(), sessionService);
         }
     }
 
