@@ -29,11 +29,11 @@ public class AuthController {
             var username = UserUtils.validateStringField(body.get(USERNAME_FIELD), USERNAME_FIELD);
             var password = UserUtils.validateStringField(body.get(PASSWORD_FIELD), PASSWORD_FIELD);
 
-            var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
             var user = userService.authenticate(username, password);
             if (user == null) {
-                return unauthorizeResponse(sessionService.buildCookie(sessionId));
+                return unauthorizeResponse();
             }
+            var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
             sessionService.assignUser(sessionId, user.getId());
             return noContentResponse(sessionService.buildCookie(sessionId));
         } catch (FieldInvalidException exception) {
