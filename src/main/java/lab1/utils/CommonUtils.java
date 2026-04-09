@@ -1,6 +1,9 @@
 package lab1.utils;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 public class CommonUtils {
 
@@ -11,11 +14,16 @@ public class CommonUtils {
         return value;
     }
 
-    public static String validateStringParameter(String value, String parameterName) {
-        if (!checkIfStringIsCorrect(value)) {
-            throw new ParameterInvalidException(parameterName);
-        }
-        return value;
+    public static String validateNullableString(Object value, String fieldName) {
+        if (value == null) return null;
+        return validateStringField(value.toString(), fieldName);
+    }
+
+    public static String validateOptionalEmptyString(Object value, String fieldName) {
+        if (value == null) return null;
+        var str = value.toString();
+        if (str.isEmpty()) return "";
+        return validateStringField(str, fieldName);
     }
 
     private static boolean checkIfStringIsCorrect(String value) {
@@ -25,12 +33,6 @@ public class CommonUtils {
     public static void validatedDateTimeField(String value, String fieldName) {
         if (!checkIfDateTimeIsCorrect(value)) {
             throw new FieldInvalidException(fieldName);
-        }
-    }
-
-    public static void validatedDateTimeParameter(String value, String parameterName) {
-        if (!checkIfDateTimeIsCorrect(value)) {
-            throw new ParameterInvalidException(parameterName);
         }
     }
 
@@ -45,7 +47,7 @@ public class CommonUtils {
 
     public static Integer parseUnsignedIntParameter(String value, String fieldName) {
         if (value == null || value.isBlank()) {
-            throw new FieldInvalidException(fieldName);
+            throw new ParameterInvalidException(fieldName);
         }
         try {
             var parsedValue = Integer.parseInt(value);
@@ -58,6 +60,27 @@ public class CommonUtils {
         }
     }
 
+    public static Integer parseOptionalUnsignedInt(Object value, String fieldName) {
+        if (value == null) return null;
+        return parseUnsignedIntParameter(value.toString(), fieldName);
+    }
+
+    public static LocalDate parseOptionalDate(String value, String fieldName) {
+        if (value == null) return null;
+        return parseDateParameter(value, fieldName);
+    }
+
+    public static LocalDate parseDateParameter(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new ParameterInvalidException(fieldName);
+        }
+        try {
+            return LocalDate.parse(value, DateTimeFormatter.BASIC_ISO_DATE);
+        } catch (DateTimeParseException exception) {
+            throw new ParameterInvalidException(fieldName);
+        }
+    }
+
     public static class FieldInvalidException extends RuntimeException {
         public FieldInvalidException(String fieldName) {
             super("invalid " + fieldName + " field");
@@ -66,7 +89,7 @@ public class CommonUtils {
 
     public static class ParameterInvalidException extends RuntimeException {
         public ParameterInvalidException(String parameterName) {
-            super("invalid " + parameterName + " parameter");
+            super("invalid " + parameterName + " field");
         }
     }
 }

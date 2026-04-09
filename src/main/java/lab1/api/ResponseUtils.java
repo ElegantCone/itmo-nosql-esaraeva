@@ -55,6 +55,12 @@ public class ResponseUtils {
                 .build();
     }
 
+    public static ResponseEntity<?> unauthorizedEmptyResponse(ResponseCookie cookie) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .build();
+    }
+
     public static ResponseEntity<?> okResponse(ResponseCookie cookie, Object responseBody) {
         var response = ResponseEntity.ok();
         if (cookie != null) {
@@ -63,5 +69,16 @@ public class ResponseUtils {
         return response.body(responseBody);
     }
 
+    public static ResponseEntity<?> notFoundResponse(HttpServletRequest request, String message, SessionService sessionService) {
+        var response = ResponseEntity.status(HttpStatus.NOT_FOUND);
+        sessionService.refreshExistingSession(request.getCookies())
+                .ifPresent(sessionId -> response.header(HttpHeaders.SET_COOKIE, sessionService.buildCookie(sessionId).toString()));
+        return response.body(new ApiErrorResponse(message));
+    }
 
+    public static ResponseEntity<?> notFoundResponse(ResponseCookie cookie, String message) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(new ApiErrorResponse(message));
+    }
 }

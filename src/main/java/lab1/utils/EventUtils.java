@@ -1,16 +1,40 @@
 package lab1.utils;
 
-public class EventUtils {
-    public static final String TITLE_FIELD = "title";
-    public static final String ADDRESS_FIELD = "address";
-    public static final String STARTED_AT_FIELD = "started_at";
-    public static final String FINISHED_AT_FIELD = "finished_at";
-    public static final String DESCRIPTION_FIELD = "description";
+public class EventUtils extends CommonUtils {
+    enum EventType {
+        MEETUP,
+        CONCERT,
+        EXHIBITION,
+        PARTY,
+        OTHER
+    }
 
+    public static String validateOptionalCategoryField(Object value, String fieldName) {
+        var category = validateNullableString(value, fieldName);
+        if (category == null) return null;
+        try {
+            EventType.valueOf(category.toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new FieldInvalidException(fieldName);
+        }
+        return category;
+    }
 
     public static class DuplicateEventException extends RuntimeException {
-        public  DuplicateEventException() {
-            super("event already exists");
+        public DuplicateEventException() {
+            super("Event already exists");
+        }
+    }
+
+    public static class EventNotFoundException extends RuntimeException {
+        public EventNotFoundException() {
+            super("Not found");
+        }
+    }
+
+    public static class EventEditForbiddenException extends RuntimeException {
+        public EventEditForbiddenException() {
+            super("Not found. Be sure that event exists and you are the organizer");
         }
     }
 }

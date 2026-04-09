@@ -1,34 +1,26 @@
 package lab1.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 import java.util.Map;
 
-import static lab1.utils.CommonUtils.validatedDateTimeField;
+import static lab1.params.EventParams.*;
 import static lab1.utils.CommonUtils.validateStringField;
-import static lab1.utils.EventUtils.*;
+import static lab1.utils.CommonUtils.validatedDateTimeField;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-public class CreateEventRequest {
-    private String title;
-    private String address;
-    private String startedAt;
-    private String finishedAt;
-    private String description;
-
-    public CreateEventRequest(Map<String, String> body) {
-        title = validateStringField(body.get(TITLE_FIELD), TITLE_FIELD);
-        address = validateStringField(body.get(ADDRESS_FIELD), ADDRESS_FIELD);
-        startedAt = body.get(STARTED_AT_FIELD);
+public record CreateEventRequest (
+        String title,
+        String address,
+        String startedAt,
+        String finishedAt,
+        String description
+) {
+    public static CreateEventRequest from(Map<String, String> body) {
+        var title = validateStringField(body.get(TITLE_FIELD), TITLE_FIELD);
+        var address = validateStringField(body.get(ADDRESS_FIELD), ADDRESS_FIELD);
+        var startedAt = body.get(STARTED_AT_FIELD);
         validatedDateTimeField(startedAt, STARTED_AT_FIELD);
-        finishedAt = body.get(FINISHED_AT_FIELD);
+        var finishedAt = body.get(FINISHED_AT_FIELD);
         validatedDateTimeField(finishedAt, FINISHED_AT_FIELD);
-        description = validateStringField(body.get(DESCRIPTION_FIELD), DESCRIPTION_FIELD);
+        var description = validateStringField(body.get(DESCRIPTION_FIELD), DESCRIPTION_FIELD);
+        return new CreateEventRequest(title, address, startedAt, finishedAt, description);
     }
 }

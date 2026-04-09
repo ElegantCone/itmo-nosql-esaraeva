@@ -36,8 +36,8 @@ public class SessionService {
         return Optional.of(sessionId);
     }
 
-    public Optional<ResponseCookie> getResponseCookie(Cookie[] cookies) {
-        return findExistingSessionId(cookies).map(cookieController::buildCookieResponse);
+    public ResponseCookie getResponseCookieOrNull(Cookie[] cookies) {
+        return findExistingSessionId(cookies).map(cookieController::buildCookieResponse).orElse(null);
     }
 
     public String createOrRefreshCookie(Cookie[] cookies) {

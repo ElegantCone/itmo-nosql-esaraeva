@@ -14,8 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 import static lab1.api.ResponseUtils.*;
-import static lab1.utils.UserUtils.PASSWORD_FIELD;
-import static lab1.utils.UserUtils.USERNAME_FIELD;
+import static lab1.params.UserRequestParams.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -32,10 +31,10 @@ public class AuthController {
 
             var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
             var user = userService.authenticate(username, password);
-            if (user.isEmpty()) {
+            if (user == null) {
                 return unauthorizeResponse(sessionService.buildCookie(sessionId));
             }
-            sessionService.assignUser(sessionId, user.get().getId());
+            sessionService.assignUser(sessionId, user.getId());
             return noContentResponse(sessionService.buildCookie(sessionId));
         } catch (FieldInvalidException exception) {
             return invalidResponse(request, exception.getMessage(), sessionService);
