@@ -21,6 +21,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public class EventDocument {
     @Id
     private String id;
+    @Indexed
     @Field("title")
     private String title;
     @Field("category")
