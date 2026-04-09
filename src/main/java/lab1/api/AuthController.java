@@ -28,12 +28,11 @@ public class AuthController {
         try {
             var username = UserUtils.validateStringField(body.get(USERNAME_FIELD), USERNAME_FIELD);
             var password = UserUtils.validateStringField(body.get(PASSWORD_FIELD), PASSWORD_FIELD);
-
+            var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
             var user = userService.authenticate(username, password);
             if (user == null) {
-                return unauthorizeResponse();
+                return unauthorizeResponse(sessionService.buildCookie(sessionId));
             }
-            var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
             sessionService.assignUser(sessionId, user.getId());
             return noContentResponse(sessionService.buildCookie(sessionId));
         } catch (FieldInvalidException exception) {
@@ -44,7 +43,7 @@ public class AuthController {
     @PostMapping("/auth/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {
         var existingSessionId = sessionService.findExistingSessionId(request.getCookies()).orElse(null);
-        if (existingSessionId != null && sessionService.getUserId(existingSessionId).isPresent()) {
+        if (existingSessionId != null) {
             sessionService.deleteSession(existingSessionId);
             return noContentResponse(sessionService.buildExpiredCookie(existingSessionId));
         }

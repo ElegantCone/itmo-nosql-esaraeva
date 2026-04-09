@@ -44,8 +44,9 @@ public class ResponseUtils {
                 .build();
     }
 
-    public static ResponseEntity<?> unauthorizeResponse() {
+    public static ResponseEntity<?> unauthorizeResponse(ResponseCookie cookie) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(new ApiErrorResponse("invalid credentials"));
     }
 
