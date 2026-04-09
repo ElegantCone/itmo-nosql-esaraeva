@@ -24,7 +24,7 @@ services:
 
   configsvr1:
     image: mongo:8.0
-    command: ["mongod", "--configsvr", "--replSet", "${CONFIGRS_NAME}", "--port", "${CONFIG1_PORT}", "--bind_ip_all"]
+    command: [ "mongod", "--configsvr", "--replSet", "${CONFIGRS_NAME}", "--port", "${CONFIG1_PORT}", "--bind_ip_all" ]
     ports:
       - ${CONFIG1_PORT}:${CONFIG1_PORT}
     volumes:
@@ -32,7 +32,7 @@ services:
 
   configsvr2:
     image: mongo:8.0
-    command: ["mongod", "--configsvr", "--replSet", "${CONFIGRS_NAME}", "--port", "${CONFIG2_PORT}", "--bind_ip_all"]
+    command: [ "mongod", "--configsvr", "--replSet", "${CONFIGRS_NAME}", "--port", "${CONFIG2_PORT}", "--bind_ip_all" ]
     ports:
       - ${CONFIG2_PORT}:${CONFIG2_PORT}
     volumes:
@@ -40,7 +40,7 @@ services:
 
   configsvr3:
     image: mongo:8.0
-    command: ["mongod", "--configsvr", "--replSet", "${CONFIGRS_NAME}", "--port", "${CONFIG3_PORT}", "--bind_ip_all"]
+    command: [ "mongod", "--configsvr", "--replSet", "${CONFIGRS_NAME}", "--port", "${CONFIG3_PORT}", "--bind_ip_all" ]
     ports:
       - ${CONFIG3_PORT}:${CONFIG3_PORT}
     volumes:
@@ -48,7 +48,7 @@ services:
 
   shard1a:
     image: mongo:8.0
-    command: ["mongod", "--shardsvr", "--replSet", "${SHARD1_RS_NAME}", "--port", "${SHARD1_A_PORT}", "--bind_ip_all"]
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD1_RS_NAME}", "--port", "${SHARD1_A_PORT}", "--bind_ip_all" ]
     ports:
       - ${SHARD1_A_PORT}:${SHARD1_A_PORT}
     volumes:
@@ -56,7 +56,7 @@ services:
 
   shard1b:
     image: mongo:8.0
-    command: ["mongod", "--shardsvr", "--replSet", "${SHARD1_RS_NAME}", "--port", "${SHARD1_B_PORT}", "--bind_ip_all"]
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD1_RS_NAME}", "--port", "${SHARD1_B_PORT}", "--bind_ip_all" ]
     ports:
       - ${SHARD1_B_PORT}:${SHARD1_B_PORT}
     volumes:
@@ -64,7 +64,7 @@ services:
 
   shard1c:
     image: mongo:8.0
-    command: ["mongod", "--shardsvr", "--replSet", "${SHARD1_RS_NAME}", "--port", "${SHARD1_C_PORT}", "--bind_ip_all"]
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD1_RS_NAME}", "--port", "${SHARD1_C_PORT}", "--bind_ip_all" ]
     ports:
       - ${SHARD1_C_PORT}:${SHARD1_C_PORT}
     volumes:
@@ -72,7 +72,7 @@ services:
 
   shard2a:
     image: mongo:8.0
-    command: ["mongod", "--shardsvr", "--replSet", "${SHARD2_RS_NAME}", "--port", "${SHARD2_A_PORT}", "--bind_ip_all"]
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD2_RS_NAME}", "--port", "${SHARD2_A_PORT}", "--bind_ip_all" ]
     ports:
       - ${SHARD2_A_PORT}:${SHARD2_A_PORT}
     volumes:
@@ -80,7 +80,7 @@ services:
 
   shard2b:
     image: mongo:8.0
-    command: ["mongod", "--shardsvr", "--replSet", "${SHARD2_RS_NAME}", "--port", "${SHARD2_B_PORT}", "--bind_ip_all"]
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD2_RS_NAME}", "--port", "${SHARD2_B_PORT}", "--bind_ip_all" ]
     ports:
       - ${SHARD2_B_PORT}:${SHARD2_B_PORT}
     volumes:
@@ -88,7 +88,7 @@ services:
 
   shard2c:
     image: mongo:8.0
-    command: ["mongod", "--shardsvr", "--replSet", "${SHARD2_RS_NAME}", "--port", "${SHARD2_C_PORT}", "--bind_ip_all"]
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD2_RS_NAME}", "--port", "${SHARD2_C_PORT}", "--bind_ip_all" ]
     ports:
       - ${SHARD2_C_PORT}:${SHARD2_C_PORT}
     volumes:
@@ -96,7 +96,7 @@ services:
 
   mongos:
     image: mongo:8.0
-    command: ["mongos", "--configdb", "${CONFIGRS_NAME}/configsvr1:${CONFIG1_PORT},configsvr2:${CONFIG2_PORT},configsvr3:${CONFIG3_PORT}", "--bind_ip_all", "--port", "${MONGODB_PORT}"]
+    command: [ "mongos", "--configdb", "${CONFIGRS_NAME}/configsvr1:${CONFIG1_PORT},configsvr2:${CONFIG2_PORT},configsvr3:${CONFIG3_PORT}", "--bind_ip_all", "--port", "${MONGODB_PORT}" ]
     depends_on:
       configsvr1:
         condition: service_started
@@ -134,7 +134,11 @@ services:
         condition: service_started
     volumes:
       - ./mongo/init-cluster.sh:/scripts/init-cluster.sh:ro
-    entrypoint: ["bash", "/scripts/init-cluster.sh"]
+      - ./mongo/init-config-rs.js:/scripts/init-config-rs.js:ro
+      - ./mongo/init-shard1-rs.js:/scripts/init-shard1-rs.js:ro
+      - ./mongo/init-shard2-rs.js:/scripts/init-shard2-rs.js:ro
+      - ./mongo/init-mongo.js:/scripts/init-mongo.js:ro
+    entrypoint: [ "bash", "/scripts/init-cluster.sh" ]
     restart: "no"
 
 volumes:
