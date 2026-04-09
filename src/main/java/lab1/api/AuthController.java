@@ -44,7 +44,7 @@ public class AuthController {
     @PostMapping("/auth/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {
         var existingSessionId = sessionService.findExistingSessionId(request.getCookies()).orElse(null);
-        if (existingSessionId != null && sessionService.getUserId(existingSessionId).isPresent()) {
+        if (existingSessionId != null) {
             sessionService.deleteSession(existingSessionId);
             return noContentResponse(sessionService.buildExpiredCookie(existingSessionId));
         }
