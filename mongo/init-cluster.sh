@@ -9,10 +9,10 @@ wait_for_mongo() {
   done
 }
 
-wait_for_primary() {
+wait() {
   local host="$1"
   local port="$2"
-  until [[ "$(mongosh --host "$host" --port "$port" --quiet --eval 'db.hello().isWritablePrimary ? 1 : 0')" == "1" ]]; do
+  until [[ "$(mongosh --host "$host" --port "$port" --quiet --eval 'rs.status().members.some(m => m.stateStr === "PRIMARY") ? 1 : 0')" == "1" ]]; do
     sleep 2
   done
 }
@@ -31,9 +31,9 @@ mongosh --host configsvr1 --port "$CONFIG1_PORT" /scripts/init-config-rs.js || t
 mongosh --host shard1a --port "$SHARD1_A_PORT" /scripts/init-shard1-rs.js || true
 mongosh --host shard2a --port "$SHARD2_A_PORT" /scripts/init-shard2-rs.js || true
 
-wait_for_primary configsvr1 "$CONFIG1_PORT"
-wait_for_primary shard1a "$SHARD1_A_PORT"
-wait_for_primary shard2a "$SHARD2_A_PORT"
+wait configsvr1 "$CONFIG1_PORT"
+wait shard1a "$SHARD1_A_PORT"
+wait shard2a "$SHARD2_A_PORT"
 wait_for_mongo mongos "$MONGODB_PORT"
 
 mongosh --host mongos --port "$MONGODB_PORT" /scripts/init-mongo.js
