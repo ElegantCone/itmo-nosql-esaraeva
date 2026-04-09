@@ -22,9 +22,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static lab1.mongo.EventRepository.EVENT_PROPERTY;
 import static lab1.params.EventListItemParams.CREATED_BY_FIELD;
@@ -84,18 +84,9 @@ public class EventService {
         var query = new Query().with(Sort.by(Sort.Direction.ASC, EVENT_PROPERTY));
         addCommonCriteria(query, criteria);
 
-        List<EventDocument> documents = mongoTemplate.find(query, EventDocument.class).stream()
-                .filter(document -> matchesDate(document.getStartedAt(), criteria.dateFrom(), criteria.dateTo()))
-                .toList();
+        var documentsStream = prepareDocumentsStream(query, criteria);
 
-        if (criteria.offset() != null) {
-            documents = documents.stream().skip(criteria.offset()).toList();
-        }
-        if (criteria.limit() != null) {
-            documents = documents.stream().limit(criteria.limit()).toList();
-        }
-
-        var items = documents.stream()
+        var items = documentsStream
                 .map(this::toResponse)
                 .toList();
         return new EventsResponse(items, items.size());
@@ -107,14 +98,29 @@ public class EventService {
                 .orElseThrow(EventNotFoundException::new);
     }
 
-    public EventsResponse findByOrganizerId(String userId) {
+    public EventsResponse findByOrganizerId(String userId, EventSearchCriteria criteria) {
         var query = new Query()
                 .with(Sort.by(Sort.Direction.ASC, EVENT_PROPERTY))
                 .addCriteria(Criteria.where(CREATED_BY_FIELD).is(userId));
-        var items = mongoTemplate.find(query, EventDocument.class).stream()
+        addCommonCriteria(query, criteria);
+
+        var documentsStream = prepareDocumentsStream(query, criteria);
+        var items = documentsStream
                 .map(this::toResponse)
                 .toList();
         return new EventsResponse(items, items.size());
+    }
+
+    private Stream<EventDocument> prepareDocumentsStream(Query query, EventSearchCriteria criteria) {
+        var stream = mongoTemplate.find(query, EventDocument.class).stream()
+                .filter(document -> matchesDate(document.getStartedAt(), criteria.dateFrom(), criteria.dateTo()));
+        if (criteria.offset() != null) {
+            stream = stream.skip(criteria.offset());
+        }
+        if (criteria.limit() != null) {
+            stream = stream.limit(criteria.limit());
+        }
+        return stream;
     }
 
     private void addCommonCriteria(Query query, EventSearchCriteria criteria) {

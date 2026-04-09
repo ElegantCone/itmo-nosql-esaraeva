@@ -2,6 +2,7 @@ package lab1.api;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lab1.model.CreateUserRequest;
+import lab1.model.EventSearchCriteria;
 import lab1.model.UserSearchCriteria;
 import lab1.service.EventService;
 import lab1.service.SessionService;
@@ -62,12 +63,21 @@ public class UserController {
     }
 
     @GetMapping("/users/{id}/events")
-    public ResponseEntity<?> getUserEvents(HttpServletRequest request, @PathVariable("id") String id) {
+    public ResponseEntity<?> getUserEvents(
+            HttpServletRequest request,
+            @PathVariable("id") String id,
+            @RequestParam Map<String, String> params
+    ) {
         try {
             userService.ensureExists(id);
-            return okResponse(sessionService.getResponseCookieOrNull(request.getCookies()), eventService.findByOrganizerId(id));
+            return okResponse(
+                    sessionService.getResponseCookieOrNull(request.getCookies()),
+                    eventService.findByOrganizerId(id, EventSearchCriteria.from(params))
+            );
         } catch (UserNotFoundException exception) {
             return notFoundResponse(request, exception.getMessage(), sessionService);
+        } catch (FieldInvalidException | ParameterInvalidException exception) {
+            return invalidResponse(request, exception.getMessage(), sessionService);
         }
     }
 }
