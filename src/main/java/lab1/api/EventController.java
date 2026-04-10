@@ -54,7 +54,11 @@ public class EventController {
             @PathVariable("id") String id,
             @RequestBody Map<String, Object> body
     ) {
-        var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
+        var sessionId = sessionService.findExistingSessionId(request.getCookies()).orElse(null);
+        if (sessionId == null) {
+           return unauthorizedEmptyResponse();
+        }
+        sessionId = sessionService.createOrRefreshCookie(request.getCookies());
         var userId = sessionService.getUserId(sessionId);
         if (userId.isEmpty()) {
             return unauthorizedEmptyResponse(sessionService.buildCookie(sessionId));
