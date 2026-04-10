@@ -29,12 +29,15 @@ public class EventController {
 
     @PostMapping("/events")
     public ResponseEntity<?> createEvent(HttpServletRequest request, @RequestBody Map<String, String> body) {
-        var sessionId = sessionService.createOrRefreshCookie(request.getCookies());
+        var sessionId = sessionService.findExistingSessionId(request.getCookies()).orElse(null);
+        if (sessionId == null) {
+            return unauthorizedEmptyResponse();
+        }
         var userId = sessionService.getUserId(sessionId);
         if (userId.isEmpty()) {
             return unauthorizedEmptyResponse(sessionService.buildCookie(sessionId));
         }
-
+        sessionService.refreshExistingSession(request.getCookies());
         try {
             var eventId = eventService.create(
                     CreateEventRequest.from(body),
@@ -58,7 +61,7 @@ public class EventController {
         if (sessionId == null) {
            return unauthorizedEmptyResponse();
         }
-        sessionId = sessionService.createOrRefreshCookie(request.getCookies());
+        sessionService.refreshExistingSession(request.getCookies());
         var userId = sessionService.getUserId(sessionId);
         if (userId.isEmpty()) {
             return unauthorizedEmptyResponse(sessionService.buildCookie(sessionId));
