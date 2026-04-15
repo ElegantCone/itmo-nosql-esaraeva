@@ -25,6 +25,15 @@ public class CookieController {
                 .build();
     }
 
+    public ResponseCookie buildExpiredCookieResponse(String sessionId) {
+        var cookieValue = sessionId == null ? "" : sessionId;
+        return ResponseCookie.from(SessionRepository.SESSION_KEY, cookieValue)
+                .httpOnly(true)
+                .maxAge(0)
+                .path(SessionRepository.PATH)
+                .build();
+    }
+
     public Optional<Cookie> getCookie(Cookie[] cookies) {
         if (cookies == null) return Optional.empty();
         for (var cookie : cookies) {
