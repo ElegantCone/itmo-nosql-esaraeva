@@ -1,0 +1,260 @@
+{
+  "info": {
+    "_postman_id": "50b5dfb5-7836-47e9-b5e3-c36a72d0a7f9",
+    "name": "Lab4",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "24915633",
+    "_collection_link": "https://go.postman.co/collection/24915633-50b5dfb5-7836-47e9-b5e3-c36a72d0a7f9?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Create user",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"full_name\": \"Джон Доу\",\n    \"username\": \"j0hnd0e42\",\n    \"password\": \"svp4_dvp4_str0ng_passw0rd\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get users by name",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/users?name=Джон",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "users"
+          ],
+          "query": [
+            {
+              "key": "name",
+              "value": "Джон"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get user by id",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/users/69d7fe84c9d00da001264f89",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "users",
+            "69d7fe84c9d00da001264f89"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get events by user",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/users/69d7fe84c9d00da001264f89/events",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "users",
+            "69d7fe84c9d00da001264f89",
+            "events"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Patch event",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"category\": \"concert\",\n    \"price\": 1000,\n    \"city\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/events/69d7fe9bc9d00da001264f8a",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events",
+            "69d7fe9bc9d00da001264f8a"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Organizer. Filter events",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/events?category=concert&city=Москва&price_to=1000&started_date_from=20260314",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events"
+          ],
+          "query": [
+            {
+              "key": "category",
+              "value": "concert"
+            },
+            {
+              "key": "city",
+              "value": "Москва"
+            },
+            {
+              "key": "price_to",
+              "value": "1000"
+            },
+            {
+              "key": "started_date_from",
+              "value": "20260314"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Organizer. Get event",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/events/69d7fe9bc9d00da001264f8a",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events",
+            "69d7fe9bc9d00da001264f8a"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Organizer. Get unknown event",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/events/unknown",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events",
+            "unknown"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

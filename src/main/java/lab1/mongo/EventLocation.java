@@ -1,14 +1,11 @@
 package lab1.mongo;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import org.springframework.data.mongodb.core.mapping.Field;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class EventLocation {
-    private String address;
+public record EventLocation(
+        @Field("city")
+        String city,
+        @Field("address")
+        String address
+) {
 }

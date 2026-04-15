@@ -1,5 +1,6 @@
 package lab1.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lab1.utils.CommonUtils;
 import lombok.AllArgsConstructor;
@@ -7,39 +8,46 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import static lab1.params.EventListItemParams.*;
+import static lab1.params.EventParams.*;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class EventListItemResponse {
-    @JsonProperty("id")
+    @JsonProperty(ID_FIELD)
     String id;
-    @JsonProperty("title")
+    @JsonProperty(TITLE_FIELD)
     String title;
-    @JsonProperty("description")
+    @JsonProperty(CATEGORY_FIELD)
+    String category;
+    @JsonProperty(PRICE_FIELD)
+    Integer price;
+    @JsonProperty(DESCRIPTION_FIELD)
     String description;
-    @JsonProperty("location")
+    @JsonProperty(LOCATION_FIELD)
     LocationResponse location;
-    @JsonProperty("created_at")
+    @JsonProperty(CREATED_AT_FIELD)
     String createdAt;
-    @JsonProperty("created_by")
+    @JsonProperty(CREATED_BY_FIELD)
     String createdBy;
-    @JsonProperty("started_at")
+    @JsonProperty(STARTED_AT_FIELD)
     String startedAt;
-    @JsonProperty("finished_at")
+    @JsonProperty(FINISHED_AT_FIELD)
     String finishedAt;
 
     public void validate() throws IllegalArgumentException {
-        CommonUtils.validateStringField(id, "id");
-        CommonUtils.validateStringField(title, "title");
-        CommonUtils.validateStringField(description, "description");
+        CommonUtils.validateStringField(id, ID_FIELD);
+        CommonUtils.validateStringField(title, TITLE_FIELD);
+        CommonUtils.validateStringField(description, DESCRIPTION_FIELD);
         if (location == null) {
-            throw new CommonUtils.FieldInvalidException("location");
+            throw new CommonUtils.FieldInvalidException(LOCATION_FIELD);
         }
-        CommonUtils.validatedDateTimeField(createdAt, "created_at");
-        CommonUtils.validateStringField(createdBy, "created_by");
-        CommonUtils.validatedDateTimeField(startedAt, "started_at");
-        CommonUtils.validatedDateTimeField(finishedAt, "finished_at");
+        CommonUtils.validatedDateTimeField(createdAt, CREATED_AT_FIELD);
+        CommonUtils.validateStringField(createdBy, CREATED_BY_FIELD);
+        CommonUtils.validatedDateTimeField(startedAt, STARTED_AT_FIELD);
+        CommonUtils.validatedDateTimeField(finishedAt, FINISHED_AT_FIELD);
     }
-
 }

@@ -19,14 +19,11 @@ import org.springframework.data.mongodb.core.mapping.Field;
 public class UserDocument {
     @Id
     private String id;
-
     @Field("full_name")
     private String fullName;
-
     @Indexed(unique = true)
     @Field("username")
     private String username;
-
     @Field("password_hash")
     private String passwordHash;
 }

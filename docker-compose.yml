@@ -1,6 +1,6 @@
 services:
   backend:
-    image: lab2:1.0.0
+    image: lab4:1.0.0
     env_file:
       - .env.local
     build:
@@ -11,20 +11,143 @@ services:
       - "5005:5005" # java debug
     environment:
       JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005" #only for java debug
+    depends_on:
+      redis:
+        condition: service_started
+      mongo-setup:
+        condition: service_completed_successfully
+
   redis:
     image: redis:latest
     ports:
       - ${REDIS_PORT}:${REDIS_PORT}
-  mongodb:
+
+  configsvr1:
     image: mongo:8.0
+    command: [ "mongod", "--configsvr", "--replSet", "${CONFIGRS_NAME}", "--port", "${CONFIG1_PORT}", "--bind_ip_all" ]
+    ports:
+      - ${CONFIG1_PORT}:${CONFIG1_PORT}
+    volumes:
+      - configsvr1-data:/data/db
+
+  configsvr2:
+    image: mongo:8.0
+    command: [ "mongod", "--configsvr", "--replSet", "${CONFIGRS_NAME}", "--port", "${CONFIG2_PORT}", "--bind_ip_all" ]
+    ports:
+      - ${CONFIG2_PORT}:${CONFIG2_PORT}
+    volumes:
+      - configsvr2-data:/data/db
+
+  configsvr3:
+    image: mongo:8.0
+    command: [ "mongod", "--configsvr", "--replSet", "${CONFIGRS_NAME}", "--port", "${CONFIG3_PORT}", "--bind_ip_all" ]
+    ports:
+      - ${CONFIG3_PORT}:${CONFIG3_PORT}
+    volumes:
+      - configsvr3-data:/data/db
+
+  shard1a:
+    image: mongo:8.0
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD1_RS_NAME}", "--port", "${SHARD1_A_PORT}", "--bind_ip_all" ]
+    ports:
+      - ${SHARD1_A_PORT}:${SHARD1_A_PORT}
+    volumes:
+      - shard1a-data:/data/db
+
+  shard1b:
+    image: mongo:8.0
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD1_RS_NAME}", "--port", "${SHARD1_B_PORT}", "--bind_ip_all" ]
+    ports:
+      - ${SHARD1_B_PORT}:${SHARD1_B_PORT}
+    volumes:
+      - shard1b-data:/data/db
+
+  shard1c:
+    image: mongo:8.0
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD1_RS_NAME}", "--port", "${SHARD1_C_PORT}", "--bind_ip_all" ]
+    ports:
+      - ${SHARD1_C_PORT}:${SHARD1_C_PORT}
+    volumes:
+      - shard1c-data:/data/db
+
+  shard2a:
+    image: mongo:8.0
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD2_RS_NAME}", "--port", "${SHARD2_A_PORT}", "--bind_ip_all" ]
+    ports:
+      - ${SHARD2_A_PORT}:${SHARD2_A_PORT}
+    volumes:
+      - shard2a-data:/data/db
+
+  shard2b:
+    image: mongo:8.0
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD2_RS_NAME}", "--port", "${SHARD2_B_PORT}", "--bind_ip_all" ]
+    ports:
+      - ${SHARD2_B_PORT}:${SHARD2_B_PORT}
+    volumes:
+      - shard2b-data:/data/db
+
+  shard2c:
+    image: mongo:8.0
+    command: [ "mongod", "--shardsvr", "--replSet", "${SHARD2_RS_NAME}", "--port", "${SHARD2_C_PORT}", "--bind_ip_all" ]
+    ports:
+      - ${SHARD2_C_PORT}:${SHARD2_C_PORT}
+    volumes:
+      - shard2c-data:/data/db
+
+  mongos:
+    image: mongo:8.0
+    command: [ "mongos", "--configdb", "${CONFIGRS_NAME}/configsvr1:${CONFIG1_PORT},configsvr2:${CONFIG2_PORT},configsvr3:${CONFIG3_PORT}", "--bind_ip_all", "--port", "${MONGODB_PORT}" ]
+    depends_on:
+      configsvr1:
+        condition: service_started
+      configsvr2:
+        condition: service_started
+      configsvr3:
+        condition: service_started
     ports:
       - ${MONGODB_PORT}:${MONGODB_PORT}
-    environment:
-      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
-      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
-      MONGODB_DATABASE: ${MONGODB_DATABASE}
-      MONGODB_USER: ${MONGODB_USER}
-      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+
+  mongo-setup:
+    image: mongo:8.0
+    env_file:
+      - .env.local
+    depends_on:
+      configsvr1:
+        condition: service_started
+      configsvr2:
+        condition: service_started
+      configsvr3:
+        condition: service_started
+      shard1a:
+        condition: service_started
+      shard1b:
+        condition: service_started
+      shard1c:
+        condition: service_started
+      shard2a:
+        condition: service_started
+      shard2b:
+        condition: service_started
+      shard2c:
+        condition: service_started
+      mongos:
+        condition: service_started
     volumes:
-      - ./mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ./mongo/init-cluster.sh:/scripts/init-cluster.sh:ro
+      - ./mongo/init-config-rs.js:/scripts/init-config-rs.js:ro
+      - ./mongo/init-shard1-rs.js:/scripts/init-shard1-rs.js:ro
+      - ./mongo/init-shard2-rs.js:/scripts/init-shard2-rs.js:ro
+      - ./mongo/init-mongo.js:/scripts/init-mongo.js:ro
+    entrypoint: [ "bash", "/scripts/init-cluster.sh" ]
+    restart: "no"
+
+volumes:
+  configsvr1-data:
+  configsvr2-data:
+  configsvr3-data:
+  shard1a-data:
+  shard1b-data:
+  shard1c-data:
+  shard2a-data:
+  shard2b-data:
+  shard2c-data:

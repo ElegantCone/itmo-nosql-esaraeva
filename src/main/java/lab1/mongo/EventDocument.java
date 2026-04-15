@@ -19,30 +19,26 @@ import org.springframework.data.mongodb.core.mapping.Field;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EventDocument {
-
     @Id
     private String id;
-
-    @Indexed(unique = true)
+    @Indexed
     @Field("title")
     private String title;
-
+    @Field("category")
+    private String category;
+    @Field("price")
+    private Integer price;
     @Field("description")
     private String description;
-
     @Field("location")
     private EventLocation location;
-
     @Field("created_at")
     private String createdAt;
-
     @Indexed
     @Field("created_by")
     private String createdBy;
-
     @Field("started_at")
     private String startedAt;
-
     @Field("finished_at")
     private String finishedAt;
 }
