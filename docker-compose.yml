@@ -22,6 +22,11 @@ services:
     ports:
       - ${REDIS_PORT}:${REDIS_PORT}
 
+  cassandra:
+    image: cassandra:latest
+    ports:
+      - ${CASSANDRA_PORT}:${CASSANDRA_PORT}
+
   configsvr1:
     image: mongo:8.0
     command: [ "mongod", "--configsvr", "--replSet", "${CONFIGRS_NAME}", "--port", "${CONFIG1_PORT}", "--bind_ip_all" ]
