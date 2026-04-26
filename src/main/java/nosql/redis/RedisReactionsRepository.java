@@ -21,7 +21,7 @@ public class RedisReactionsRepository {
     @Getter
     @Value("${APP_LIKE_TTL}")
     private Long likeTtl;
-    private final static String prefix = "events:";
+    private final static String prefix = "event:";
     public static final String suffix = ":reactions";
     public static final String likesField = "likes";
     public static final String dislikesField = "dislikes";
