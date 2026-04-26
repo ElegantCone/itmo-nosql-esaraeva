@@ -132,7 +132,7 @@ public class EventService {
         reaction.setCreatedAt(Timestamp.from(Instant.now()));
         reaction.setLikeValue(isLiked ? 1 : -1);
         cassandraReactionsRepository.save(reaction);
-        redisReactionsRepository.remove(event.getTitle());
+        refreshReactionsCache(event.getTitle());
     }
 
     public Map<String, Long> getReactionsByEventId(String eventId) {
