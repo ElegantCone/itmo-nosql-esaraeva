@@ -4,16 +4,29 @@ set -euo pipefail
 wait_for_mongo() {
   local host="$1"
   local port="$2"
+  local attempts=60
   until mongosh --host "$host" --port "$port" --quiet --eval 'db.adminCommand({ ping: 1 }).ok' >/dev/null 2>&1; do
-    sleep 2
+    attempts=$((attempts - 1))
+    if [[ "$attempts" -le 0 ]]; then
+          echo "Timed out waiting for Mongo on ${host}:${port}" >&2
+          exit 1
+        fi
+    sleep 1
   done
 }
 
 wait() {
   local host="$1"
   local port="$2"
+  local attempts=60
   until [[ "$(mongosh --host "$host" --port "$port" --quiet --eval 'rs.status().members.some(m => m.stateStr === "PRIMARY") ? 1 : 0')" == "1" ]]; do
-    sleep 2
+    attempts=$((attempts - 1))
+        if [[ "$attempts" -le 0 ]]; then
+          echo "Timed out waiting for PRIMARY on ${host}:${port}" >&2
+          mongosh --host "$host" --port "$port" --quiet --eval 'try { printjson(rs.status()) } catch (e) { print(e) }' || true
+          exit 1
+        fi
+    sleep 1
   done
 }
 
