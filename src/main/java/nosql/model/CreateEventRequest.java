@@ -3,8 +3,7 @@ package nosql.model;
 import java.util.Map;
 
 import static nosql.params.EventParams.*;
-import static nosql.utils.CommonUtils.validateStringField;
-import static nosql.utils.CommonUtils.validatedDateTimeField;
+import static nosql.utils.CommonUtils.*;
 
 public record CreateEventRequest (
         String title,

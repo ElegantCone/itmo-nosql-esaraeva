@@ -1,6 +1,6 @@
 services:
   backend:
-    image: lab4:1.0.0
+    image: lab5:1.0.0
     env_file:
       - .env.local
     build:
@@ -16,6 +16,8 @@ services:
         condition: service_started
       mongo-setup:
         condition: service_completed_successfully
+      cassandra:
+        condition: service_healthy
 
   redis:
     image: redis:latest
@@ -26,6 +28,11 @@ services:
     image: cassandra:latest
     ports:
       - ${CASSANDRA_PORT}:${CASSANDRA_PORT}
+    healthcheck:
+      test: ["CMD", "cqlsh", "-u", "${CASSANDRA_USERNAME}", "-p", "${CASSANDRA_PASSWORD}"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
 
   configsvr1:
     image: mongo:8.0

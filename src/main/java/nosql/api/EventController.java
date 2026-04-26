@@ -93,9 +93,36 @@ public class EventController {
     }
 
     @GetMapping("/events/{id}")
-    public ResponseEntity<?> getEventById(HttpServletRequest request, @PathVariable("id") String id) {
+    public ResponseEntity<?> getEventById(HttpServletRequest request, @PathVariable("id") String id, @RequestParam Map<String, String> params) {
         try {
-            return okResponse(sessionService.getResponseCookieOrNull(request.getCookies()), eventService.findById(id));
+            return okResponse(sessionService.getResponseCookieOrNull(request.getCookies()), eventService.findById(id, EventSearchCriteria.from(params)));
+        } catch (EventNotFoundException exception) {
+            return notFoundResponse(request, exception.getMessage(), sessionService);
+        }
+    }
+
+    @PostMapping("/events/{id}/like")
+    public ResponseEntity<?> likeEvent(HttpServletRequest request, @PathVariable("id") String id) {
+        return react(request, id, true);
+    }
+
+    @PostMapping("/events/{id}/dislike")
+    public ResponseEntity<?> dislikeEvent(HttpServletRequest request, @PathVariable("id") String id) {
+        return react(request, id, false);
+    }
+
+    private ResponseEntity<?> react(HttpServletRequest request, String id, boolean isLiked) {
+        try {
+            var sessionId = sessionService.refreshExistingSession(request.getCookies()).orElse(null);
+            if (sessionId == null) {
+                return unauthorizedEmptyResponse();
+            }
+            var userId = sessionService.getUserId(sessionId);
+            if (userId.isEmpty()) {
+                return unauthorizedEmptyResponse(sessionService.buildCookie(sessionId));
+            }
+            eventService.react(id, userId.get(), isLiked);
+            return noContentResponse(sessionService.buildCookie(sessionId));
         } catch (EventNotFoundException exception) {
             return notFoundResponse(request, exception.getMessage(), sessionService);
         }

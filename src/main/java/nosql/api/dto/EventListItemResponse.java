@@ -2,11 +2,8 @@ package nosql.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.*;
 import nosql.utils.CommonUtils;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import static nosql.params.EventListItemParams.*;
 import static nosql.params.EventParams.*;
@@ -15,6 +12,7 @@ import static nosql.params.EventParams.*;
 @NoArgsConstructor
 @Getter
 @Setter
+@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class EventListItemResponse {
     @JsonProperty(ID_FIELD)
@@ -37,6 +35,8 @@ public class EventListItemResponse {
     String startedAt;
     @JsonProperty(FINISHED_AT_FIELD)
     String finishedAt;
+    @JsonProperty(REACTIONS_FIELD)
+    ReactionsResponse reactions;
 
     public void validate() throws IllegalArgumentException {
         CommonUtils.validateStringField(id, ID_FIELD);

@@ -19,7 +19,8 @@ public record EventSearchCriteria(
         LocalDate dateTo,
         String username,
         Integer limit,
-        Integer offset
+        Integer offset,
+        String include
 ) {
 
     public static EventSearchCriteria from(Map<String, String> body) {
@@ -34,6 +35,7 @@ public record EventSearchCriteria(
         var category = validateOptionalCategoryField(body.get(CATEGORY_FIELD), CATEGORY_FIELD);
         var city = validateNullableString(body.get(CITY_FIELD), CITY_FIELD);
         var user = validateNullableString(body.get(USER_PARAM), USER_PARAM);
+        var include = validateNullableString(body.get(INCLUDE_FIELD), INCLUDE_FIELD);
         return new EventSearchCriteria(
                 id,
                 title,
@@ -45,7 +47,12 @@ public record EventSearchCriteria(
                 dateToValue,
                 user,
                 limitValue,
-                offsetValue
+                offsetValue,
+                include
         );
+    }
+
+    public boolean includeReactions() {
+        return include != null && include.equalsIgnoreCase("reactions");
     }
 }

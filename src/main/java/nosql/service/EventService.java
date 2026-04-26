@@ -1,16 +1,21 @@
 package nosql.service;
 
+import lombok.RequiredArgsConstructor;
 import nosql.api.dto.EventListItemResponse;
 import nosql.api.dto.EventsResponse;
 import nosql.api.dto.LocationResponse;
+import nosql.api.dto.ReactionsResponse;
+import nosql.cassandra.CassandraReactionsRepository;
+import nosql.cassandra.Reaction;
+import nosql.cassandra.ReactionKey;
 import nosql.model.CreateEventRequest;
 import nosql.model.EventSearchCriteria;
 import nosql.model.UpdateEventRequest;
 import nosql.mongo.*;
+import nosql.redis.RedisReactionsRepository;
 import nosql.utils.EventUtils.DuplicateEventException;
 import nosql.utils.EventUtils.EventEditForbiddenException;
 import nosql.utils.EventUtils.EventNotFoundException;
-import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
@@ -20,8 +25,11 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -37,6 +45,8 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final CassandraReactionsRepository cassandraReactionsRepository;
+    private final RedisReactionsRepository redisReactionsRepository;
     private final MongoTemplate mongoTemplate;
 
     public String create(CreateEventRequest request, String userId) {
@@ -87,14 +97,14 @@ public class EventService {
         var documentsStream = prepareDocumentsStream(query, criteria);
 
         var items = documentsStream
-                .map(this::toResponse)
+                .map(e -> toResponse(e, criteria.includeReactions()))
                 .toList();
         return new EventsResponse(items, items.size());
     }
 
-    public EventListItemResponse findById(String id) {
+    public EventListItemResponse findById(String id, EventSearchCriteria criteria) {
         return eventRepository.findById(id)
-                .map(this::toResponse)
+                .map(e -> toResponse(e, criteria.includeReactions()))
                 .orElseThrow(EventNotFoundException::new);
     }
 
@@ -106,9 +116,55 @@ public class EventService {
 
         var documentsStream = prepareDocumentsStream(query, criteria);
         var items = documentsStream
-                .map(this::toResponse)
+                .map(e -> toResponse(e, criteria.includeReactions()))
                 .toList();
         return new EventsResponse(items, items.size());
+    }
+
+    public void react(String eventId, String userId, boolean isLiked) {
+        var event = eventRepository.findById(eventId).orElseThrow(EventNotFoundException::new);
+        var existingReaction = cassandraReactionsRepository.findByKeyEventIdAndKeyCreatedBy(eventId, userId);
+        var reaction = existingReaction == null?
+                Reaction.builder()
+                        .key(new ReactionKey(eventId, userId))
+                .build() :
+                existingReaction;
+        reaction.setCreatedAt(Timestamp.from(Instant.now()));
+        reaction.setLikeValue(isLiked ? 1 : -1);
+        cassandraReactionsRepository.save(reaction);
+        redisReactionsRepository.remove(event.getTitle());
+    }
+
+    public Map<String, Long> getReactionsByEventId(String eventId) {
+        var event = eventRepository.findById(eventId).orElseThrow(EventNotFoundException::new);
+        return getReactionsByTitle(event.getTitle());
+    }
+
+    private Map<String, Long> getReactionsByTitle(String title) {
+        var cached = redisReactionsRepository.getReactions(title);
+        if (cached != null) {
+            return cached;
+        }
+        var query = new Query().addCriteria(Criteria.where(TITLE_FIELD).is(title));
+        var eventsWithSameTitle = mongoTemplate.find(query, EventDocument.class);
+        long likes = 0;
+        long dislikes = 0;
+        boolean hasAnyReaction = false;
+        for (var eventDocument : eventsWithSameTitle) {
+            var reactions = cassandraReactionsRepository.findReactionsByKeyEventId(eventDocument.getId());
+            if (!reactions.isEmpty()) {
+                hasAnyReaction = true;
+            }
+            likes += reactions.stream().filter(Reaction::isLike).count();
+            dislikes += reactions.stream().filter(reaction -> !reaction.isLike()).count();
+        }
+        if (hasAnyReaction) {
+            return redisReactionsRepository.save(title, likes, dislikes);
+        }
+        return Map.of(
+                RedisReactionsRepository.likesField, 0L,
+                RedisReactionsRepository.dislikesField, 0L
+        );
     }
 
     private Stream<EventDocument> prepareDocumentsStream(Query query, EventSearchCriteria criteria) {
@@ -165,19 +221,28 @@ public class EventService {
         return dateTo == null || !startedDate.isAfter(dateTo);
     }
 
-    private EventListItemResponse toResponse(EventDocument document) {
-        var eventList = new EventListItemResponse(
-                document.getId(),
-                document.getTitle(),
-                document.getCategory(),
-                document.getPrice(),
-                document.getDescription(),
-                toLocationResponse(document.getLocation()),
-                document.getCreatedAt(),
-                document.getCreatedBy(),
-                document.getStartedAt(),
-                document.getFinishedAt()
-        );
+    private EventListItemResponse toResponse(EventDocument document, boolean includeReactions) {
+        var eventListBuilder = EventListItemResponse.builder()
+                .id(document.getId())
+                .title(document.getTitle())
+                .category(document.getCategory())
+                .price(document.getPrice())
+                .description(document.getDescription())
+                .location(toLocationResponse(document.getLocation()))
+                .createdBy(document.getCreatedBy())
+                .createdAt(document.getCreatedAt())
+                .startedAt(document.getStartedAt())
+                .finishedAt(document.getFinishedAt());
+        if (includeReactions) {
+            var reactions = getReactionsByEventId(document.getId());
+            eventListBuilder.reactions(
+                    new ReactionsResponse(
+                            reactions.getOrDefault(RedisReactionsRepository.likesField, 0L),
+                            reactions.getOrDefault(RedisReactionsRepository.dislikesField, 0L)
+                    )
+            );
+        }
+        var eventList = eventListBuilder.build();
         eventList.validate();
         return eventList;
     }
