@@ -14,8 +14,8 @@ services:
     depends_on:
       redis:
         condition: service_started
-      mongo-setup:
-        condition: service_completed_successfully
+      mongos:
+        condition: service_started
       cassandra:
         condition: service_healthy
 
