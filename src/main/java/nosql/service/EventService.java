@@ -132,7 +132,7 @@ public class EventService {
         reaction.setCreatedAt(Timestamp.from(Instant.now()));
         reaction.setLikeValue(isLiked ? 1 : -1);
         cassandraReactionsRepository.save(reaction);
-        redisReactionsRepository.remove(event.getTitle());
+        refreshReactionsCache(event.getTitle());
     }
 
     public Map<String, Long> getReactionsByEventId(String eventId) {
@@ -145,6 +145,10 @@ public class EventService {
         if (cached != null) {
             return cached;
         }
+        return refreshReactionsCache(title);
+    }
+
+    private Map<String, Long> refreshReactionsCache(String title) {
         var query = new Query().addCriteria(Criteria.where(TITLE_FIELD).is(title));
         var eventsWithSameTitle = mongoTemplate.find(query, EventDocument.class);
         long likes = 0;
@@ -161,6 +165,7 @@ public class EventService {
         if (hasAnyReaction) {
             return redisReactionsRepository.save(title, likes, dislikes);
         }
+        redisReactionsRepository.remove(title);
         return Map.of(
                 RedisReactionsRepository.likesField, 0L,
                 RedisReactionsRepository.dislikesField, 0L
