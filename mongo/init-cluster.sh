@@ -27,9 +27,9 @@ wait_for_mongo shard2a "$SHARD2_A_PORT"
 wait_for_mongo shard2b "$SHARD2_B_PORT"
 wait_for_mongo shard2c "$SHARD2_C_PORT"
 
-mongosh --host configsvr1 --port "$CONFIG1_PORT" /scripts/init-config-rs.js || true
-mongosh --host shard1a --port "$SHARD1_A_PORT" /scripts/init-shard1-rs.js || true
-mongosh --host shard2a --port "$SHARD2_A_PORT" /scripts/init-shard2-rs.js || true
+mongosh --host configsvr1 --port "$CONFIG1_PORT" /scripts/init-config-rs.js
+mongosh --host shard1a --port "$SHARD1_A_PORT" /scripts/init-shard1-rs.js
+mongosh --host shard2a --port "$SHARD2_A_PORT" /scripts/init-shard2-rs.js
 
 wait configsvr1 "$CONFIG1_PORT"
 wait shard1a "$SHARD1_A_PORT"
