@@ -103,22 +103,28 @@ public class EventController {
 
     @PostMapping("/events/{id}/like")
     public ResponseEntity<?> likeEvent(HttpServletRequest request, @PathVariable("id") String id) {
-        return react(request, id, true);
+        return react(request, id, true, false);
     }
 
     @PostMapping("/events/{id}/dislike")
     public ResponseEntity<?> dislikeEvent(HttpServletRequest request, @PathVariable("id") String id) {
-        return react(request, id, false);
+        return react(request, id, false, true);
     }
 
-    private ResponseEntity<?> react(HttpServletRequest request, String id, boolean isLiked) {
+    private ResponseEntity<?> react(HttpServletRequest request, String id, boolean isLiked, boolean expireOnUnauthorized) {
         try {
             var sessionId = sessionService.refreshExistingSession(request.getCookies()).orElse(null);
             if (sessionId == null) {
+                if (expireOnUnauthorized) {
+                    return unauthorizedEmptyResponse(sessionService.buildExpiredCookie(null));
+                }
                 return unauthorizedEmptyResponse();
             }
             var userId = sessionService.getUserId(sessionId);
             if (userId.isEmpty()) {
+                if (expireOnUnauthorized) {
+                    return unauthorizedEmptyResponse(sessionService.buildExpiredCookie(sessionId));
+                }
                 return unauthorizedEmptyResponse(sessionService.buildCookie(sessionId));
             }
             eventService.react(id, userId.get(), isLiked);
