@@ -4,13 +4,12 @@ import com.mongodb.lang.Nullable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.connection.RedisHashCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.types.Expiration;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.DigestUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -37,12 +36,8 @@ public class RedisReactionsRepository {
                 likesField, String.valueOf(likes),
                 dislikesField, String.valueOf(dislikes)
         );
-        redisTemplate.opsForHash().putAndExpire(
-                key,
-                reactions,
-                RedisHashCommands.HashFieldSetOption.upsert(),
-                Expiration.seconds(likeTtl)
-        );
+        redisTemplate.opsForHash().putAll(key, reactions);
+        redisTemplate.expire(key, Duration.ofSeconds(likeTtl));
         return Map.of(
                 likesField, likes,
                 dislikesField, dislikes
