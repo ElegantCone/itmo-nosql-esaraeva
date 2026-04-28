@@ -17,6 +17,7 @@ public class CassandraConnector {
     @PostConstruct
     public void init() {
         createEventReactionsTableIfNeeded();
+        createEventReactionsIndexesIfNeeded();
     }
 
     private void createEventReactionsTableIfNeeded() {
@@ -29,5 +30,20 @@ public class CassandraConnector {
                 .build();
 
         session.execute(statement);
+    }
+
+    private void createEventReactionsIndexesIfNeeded() {
+        var likeIdxStatement = SchemaBuilder.createIndex("event_reactions_like_value_idx")
+                .ifNotExists()
+                .onTable(ReactionParams.TABLE_NAME)
+                .andColumn(ReactionParams.LIKE_PARAM)
+                .build();
+        session.execute(likeIdxStatement);
+        var createdByIdxStatement = SchemaBuilder.createIndex("event_reactions_created_by_idx")
+                .ifNotExists()
+                .onTable(ReactionParams.TABLE_NAME)
+                .andColumn(ReactionParams.CREATED_BY_PARAM)
+                .build();
+        session.execute(createdByIdxStatement);
     }
 }
