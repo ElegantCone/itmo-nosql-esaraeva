@@ -1,11 +1,9 @@
 package nosql.cassandra.configuration;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -18,20 +16,9 @@ public class CassandraConfiguration {
     public CqlSession cqlSession(CassandraProperties props) {
         var loader = DriverConfigLoader.programmaticBuilder()
                 .withString(DefaultDriverOption.REQUEST_CONSISTENCY, props.consistency()).build();
-        initializeKeyspaceIfNeeded(props, loader);
         return sessionBuilder(props, loader)
-                .withKeyspace(CqlIdentifier.fromCql(props.keyspace()))
+                .withKeyspace(props.keyspace())
                 .build();
-    }
-
-    private void initializeKeyspaceIfNeeded(CassandraProperties props, DriverConfigLoader loader) {
-        try (var session = sessionBuilder(props, loader).build()) {
-            var statement = SchemaBuilder.createKeyspace(CqlIdentifier.fromCql(props.keyspace()))
-                    .ifNotExists()
-                    .withSimpleStrategy(1)
-                    .build();
-            session.execute(statement);
-        }
     }
 
     private CqlSessionBuilder sessionBuilder(CassandraProperties props, DriverConfigLoader loader) {
