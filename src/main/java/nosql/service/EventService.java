@@ -123,7 +123,7 @@ public class EventService {
 
     public void react(String eventId, String userId, boolean isLiked) {
         var event = eventRepository.findById(eventId).orElseThrow(EventNotFoundException::new);
-        var existingReaction = cassandraReactionsRepository.findByKeyEventIdAndKeyCreatedBy(eventId, userId);
+        var existingReaction = cassandraReactionsRepository.findFirstByKeyEventIdAndKeyCreatedBy(eventId, userId);
         var reaction = existingReaction == null?
                 Reaction.builder()
                         .key(new ReactionKey(eventId, userId))
@@ -132,7 +132,7 @@ public class EventService {
         reaction.setCreatedAt(Timestamp.from(Instant.now()));
         reaction.setLikeValue(isLiked ? 1 : -1);
         cassandraReactionsRepository.save(reaction);
-        refreshReactionsCache(event.getTitle());
+        refreshReactionsCache(event.getTitle(), existingReaction, isLiked);
     }
 
     public Map<String, Long> getReactionsByEventId(String eventId) {
@@ -145,10 +145,17 @@ public class EventService {
         if (cached != null) {
             return cached;
         }
-        return refreshReactionsCache(title);
+        return rebuildReactionsCache(title);
     }
 
-    private Map<String, Long> refreshReactionsCache(String title) {
+    private void refreshReactionsCache(String title, Reaction previousReaction, boolean currentIsLike) {
+        if (previousReaction == null)
+            return;
+        redisReactionsRepository.updateEventReactions(title, previousReaction.isLike(), currentIsLike);
+        rebuildReactionsCache(title);
+    }
+
+    private Map<String, Long> rebuildReactionsCache(String title) {
         var query = new Query().addCriteria(Criteria.where(TITLE_FIELD).is(title));
         var eventsWithSameTitle = mongoTemplate.find(query, EventDocument.class);
         long likes = 0;

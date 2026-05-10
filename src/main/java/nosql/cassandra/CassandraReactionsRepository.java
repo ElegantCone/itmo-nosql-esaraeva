@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface CassandraReactionsRepository extends CrudRepository<Reaction, ReactionKey> {
 
-    Reaction findByKeyEventIdAndKeyCreatedBy(String eventId, String createdBy);
+    Reaction findFirstByKeyEventIdAndKeyCreatedBy(String eventId, String createdBy);
 
     @NonNull
     List<Reaction> findReactionsByKeyEventId(String eventId);

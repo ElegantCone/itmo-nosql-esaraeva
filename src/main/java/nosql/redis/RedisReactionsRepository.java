@@ -44,6 +44,16 @@ public class RedisReactionsRepository {
         );
     }
 
+    public void updateEventReactions(String eventName, boolean previousIsLike, boolean currentIsLike) {
+        var key = buildKey(eventName);
+        if (!redisTemplate.hasKey(key) || (previousIsLike == currentIsLike)) {
+            return;
+        }
+        redisTemplate.opsForHash().increment(key, previousIsLike ? likesField : dislikesField, -1);
+        redisTemplate.opsForHash().increment(key, currentIsLike ? likesField : dislikesField, 1);
+        redisTemplate.expire(key, Duration.ofSeconds(likeTtl));
+    }
+
     @Nullable
     public Map<String, Long> getReactions(String eventName) {
         var key = buildKey(eventName);
