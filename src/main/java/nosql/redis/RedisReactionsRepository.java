@@ -44,13 +44,20 @@ public class RedisReactionsRepository {
         );
     }
 
-    public void updateEventReactions(String eventName, boolean previousIsLike, boolean currentIsLike) {
+    public void updateEventReactions(String eventName, Boolean previousIsLike, boolean currentIsLike) {
         var key = buildKey(eventName);
-        if (!redisTemplate.hasKey(key) || (previousIsLike == currentIsLike)) {
+        if (!redisTemplate.hasKey(key)) {
             return;
         }
-        redisTemplate.opsForHash().increment(key, previousIsLike ? likesField : dislikesField, -1);
-        redisTemplate.opsForHash().increment(key, currentIsLike ? likesField : dislikesField, 1);
+        if (previousIsLike == null) {
+            redisTemplate.opsForHash().increment(key, currentIsLike ? likesField : dislikesField, 1);
+            redisTemplate.expire(key, Duration.ofSeconds(likeTtl));
+            return;
+        }
+        if (previousIsLike != currentIsLike) {
+            redisTemplate.opsForHash().increment(key, previousIsLike ? likesField : dislikesField, -1);
+            redisTemplate.opsForHash().increment(key, currentIsLike ? likesField : dislikesField, 1);
+        }
         redisTemplate.expire(key, Duration.ofSeconds(likeTtl));
     }
 

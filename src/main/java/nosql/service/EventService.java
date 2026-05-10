@@ -132,7 +132,7 @@ public class EventService {
         reaction.setCreatedAt(Timestamp.from(Instant.now()));
         reaction.setLikeValue(isLiked ? 1 : -1);
         cassandraReactionsRepository.save(reaction);
-        refreshReactionsCache(event.getTitle(), existingReaction, isLiked);
+        refreshReactionsCache(event.getTitle(), existingReaction != null? existingReaction.isLike() : null, isLiked);
     }
 
     public Map<String, Long> getReactionsByEventId(String eventId) {
@@ -148,11 +148,13 @@ public class EventService {
         return rebuildReactionsCache(title);
     }
 
-    private void refreshReactionsCache(String title, Reaction previousReaction, boolean currentIsLike) {
-        if (previousReaction == null)
-            return;
-        redisReactionsRepository.updateEventReactions(title, previousReaction.isLike(), currentIsLike);
-        rebuildReactionsCache(title);
+    private void refreshReactionsCache(String title, Boolean previousIsLike, boolean currentIsLike) {
+        var cached = redisReactionsRepository.getReactions(title);
+        if (cached != null) {
+            redisReactionsRepository.updateEventReactions(title, previousIsLike, currentIsLike);
+        } else {
+            rebuildReactionsCache(title);
+        }
     }
 
     private Map<String, Long> rebuildReactionsCache(String title) {
