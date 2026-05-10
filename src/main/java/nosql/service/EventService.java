@@ -124,6 +124,7 @@ public class EventService {
     public void react(String eventId, String userId, boolean isLiked) {
         var event = eventRepository.findById(eventId).orElseThrow(EventNotFoundException::new);
         var existingReaction = cassandraReactionsRepository.findFirstByKeyEventIdAndKeyCreatedBy(eventId, userId);
+        var previousIsLike = existingReaction != null ? existingReaction.isLike() : null;
         var reaction = existingReaction == null?
                 Reaction.builder()
                         .key(new ReactionKey(eventId, userId))
@@ -132,7 +133,7 @@ public class EventService {
         reaction.setCreatedAt(Timestamp.from(Instant.now()));
         reaction.setLikeValue(isLiked ? 1 : -1);
         cassandraReactionsRepository.save(reaction);
-        refreshReactionsCache(event.getTitle(), existingReaction != null? existingReaction.isLike() : null, isLiked);
+        refreshReactionsCache(event.getTitle(), previousIsLike, isLiked);
     }
 
     public Map<String, Long> getReactionsByEventId(String eventId) {
