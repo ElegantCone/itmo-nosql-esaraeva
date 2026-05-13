@@ -2,7 +2,6 @@ package nosql.redis;
 
 import com.mongodb.lang.Nullable;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import nosql.api.dto.ReactionsResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -12,7 +11,6 @@ import org.springframework.util.DigestUtils;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Repository
 public class RedisReactionsRepository extends RedisHelper<ReactionsResponse> {

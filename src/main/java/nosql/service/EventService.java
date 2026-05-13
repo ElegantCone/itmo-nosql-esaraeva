@@ -45,7 +45,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -143,6 +142,7 @@ public class EventService {
     public void react(String eventId, String userId, boolean isLiked) {
         var event = eventRepository.findById(eventId).orElseThrow(EventNotFoundException::new);
         var existingReaction = cassandraReactionsRepository.findFirstByKeyEventIdAndKeyCreatedBy(eventId, userId);
+        var previousIsLike = existingReaction != null ? existingReaction.isLike() : null;
         var reaction = existingReaction == null?
                 Reaction.builder()
                         .key(new ReactionKey(eventId, userId))
@@ -151,7 +151,7 @@ public class EventService {
         reaction.setCreatedAt(Timestamp.from(Instant.now()));
         reaction.setLikeValue(isLiked ? 1 : -1);
         cassandraReactionsRepository.save(reaction);
-        refreshReactionsCache(event.getTitle(), existingReaction != null? existingReaction.isLike() : null, isLiked);
+        refreshReactionsCache(event.getTitle(), previousIsLike, isLiked);
     }
 
     public ReactionsResponse getReactionsByEventId(String eventId) {
