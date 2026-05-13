@@ -3,6 +3,7 @@ package nosql.redis;
 import com.mongodb.lang.Nullable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import nosql.api.dto.ReactionsResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
@@ -14,23 +15,26 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Repository
-@RequiredArgsConstructor
-public class RedisReactionsRepository {
-    private final StringRedisTemplate redisTemplate;
+public class RedisReactionsRepository extends RedisHelper<ReactionsResponse> {
     @Getter
     @Value("${APP_LIKE_TTL}")
     private Long likeTtl;
-    private final static String prefix = "event:";
-    public static final String suffix = ":reactions";
+    private final static String PREFIX = "event:";
+    public static final String SUFFIX = ":reactions";
     public static final String likesField = "likes";
     public static final String dislikesField = "dislikes";
+
+    public RedisReactionsRepository(StringRedisTemplate redisTemplate) {
+        super(redisTemplate);
+    }
 
     public void remove(String eventName) {
         var key = buildKey(eventName);
         redisTemplate.delete(key);
     }
 
-    public Map<String, Long> save(String eventName, long likes, long dislikes) {
+    public ReactionsResponse save(String eventName, long likes, long dislikes) {
+        var reactionsEntity = new ReactionsResponse(likes, dislikes);
         var key = buildKey(eventName);
         var reactions = Map.of(
                 likesField, String.valueOf(likes),
@@ -38,10 +42,7 @@ public class RedisReactionsRepository {
         );
         redisTemplate.opsForHash().putAll(key, reactions);
         redisTemplate.expire(key, Duration.ofSeconds(likeTtl));
-        return Map.of(
-                likesField, likes,
-                dislikesField, dislikes
-        );
+        return reactionsEntity;
     }
 
     public void updateEventReactions(String eventName, Boolean previousIsLike, boolean currentIsLike) {
@@ -62,21 +63,16 @@ public class RedisReactionsRepository {
     }
 
     @Nullable
-    public Map<String, Long> getReactions(String eventName) {
+    public ReactionsResponse getReactions(String eventName) {
         var key = buildKey(eventName);
-        if (!redisTemplate.hasKey(key)) {
-            return null;
-        }
-        return redisTemplate.opsForHash().entries(key).entrySet().stream()
-                .collect(Collectors.toMap(
-                                e -> e.getKey().toString(),
-                                e -> Long.parseLong(e.getValue().toString())
-                        )
-                );
+        return getObjects(key, map -> new ReactionsResponse(
+                Long.parseLong(map.get(likesField)),
+                Long.parseLong(map.get(dislikesField))
+        ));
     }
 
     private String buildKey(String eventName) {
         var md5 = DigestUtils.md5DigestAsHex(eventName.getBytes(StandardCharsets.UTF_8));
-        return prefix + md5 + suffix;
+        return PREFIX + md5 + SUFFIX;
     }
 }

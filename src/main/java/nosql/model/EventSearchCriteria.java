@@ -53,6 +53,22 @@ public record EventSearchCriteria(
     }
 
     public boolean includeReactions() {
-        return include != null && include.equalsIgnoreCase("reactions");
+        return includes(REACTIONS_FIELD);
+    }
+
+    public boolean includeReviews() {
+        return includes(REVIEWS_FIELD);
+    }
+
+    private boolean includes(String value) {
+        if (include == null) {
+            return false;
+        }
+        for (var item : include.split(",")) {
+            if (item.trim().equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

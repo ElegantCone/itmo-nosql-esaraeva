@@ -3,8 +3,10 @@ package nosql.api;
 import jakarta.servlet.http.HttpServletRequest;
 import nosql.api.dto.IdResponse;
 import nosql.model.CreateEventRequest;
+import nosql.model.CreateReviewRequest;
 import nosql.model.EventSearchCriteria;
 import nosql.model.UpdateEventRequest;
+import nosql.model.UpdateReviewRequest;
 import nosql.service.EventService;
 import nosql.service.SessionService;
 import nosql.utils.CommonUtils.FieldInvalidException;
@@ -12,6 +14,8 @@ import nosql.utils.CommonUtils.ParameterInvalidException;
 import nosql.utils.EventUtils.DuplicateEventException;
 import nosql.utils.EventUtils.EventEditForbiddenException;
 import nosql.utils.EventUtils.EventNotFoundException;
+import nosql.utils.ReviewUtils.ReviewAlreadyExistsException;
+import nosql.utils.ReviewUtils.ReviewEventNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +23,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 import static nosql.api.ResponseUtils.*;
+import static nosql.params.RequestCommonParams.LIMIT_PARAM;
+import static nosql.params.RequestCommonParams.OFFSET_PARAM;
+import static nosql.utils.CommonUtils.parseOptionalUnsignedInt;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,7 +36,7 @@ public class EventController {
 
     @PostMapping("/events")
     public ResponseEntity<?> createEvent(HttpServletRequest request, @RequestBody Map<String, String> body) {
-        var sessionId = sessionService.findExistingSessionId(request.getCookies()).orElse(null);
+        var sessionId = getAndRefreshSession(request);
         if (sessionId == null) {
             return unauthorizedEmptyResponse();
         }
@@ -57,11 +64,10 @@ public class EventController {
             @PathVariable("id") String id,
             @RequestBody Map<String, Object> body
     ) {
-        var sessionId = sessionService.findExistingSessionId(request.getCookies()).orElse(null);
+        var sessionId = getAndRefreshSession(request);
         if (sessionId == null) {
            return unauthorizedEmptyResponse();
         }
-        sessionService.refreshExistingSession(request.getCookies());
         var userId = sessionService.getUserId(sessionId);
         if (userId.isEmpty()) {
             return unauthorizedEmptyResponse(sessionService.buildCookie(sessionId));
@@ -111,6 +117,79 @@ public class EventController {
         return react(request, id, false, true);
     }
 
+    @PostMapping("/events/{id}/reviews")
+    public ResponseEntity<?> createReview(
+            HttpServletRequest request,
+            @PathVariable("id") String id,
+            @RequestBody Map<String, Object> body
+    ) {
+        var sessionId = getAndRefreshSession(request);
+        if (sessionId == null) {
+            return unauthorizedEmptyResponse();
+        }
+        var userId = sessionService.getUserId(sessionId);
+        if (userId.isEmpty()) {
+            return unauthorizedEmptyResponse(sessionService.buildCookie(sessionId));
+        }
+
+        try {
+            var reviewId = eventService.createReview(id, CreateReviewRequest.from(body), userId.get());
+            return createdResponse(sessionService.buildCookie(sessionId), new IdResponse(reviewId));
+        } catch (FieldInvalidException exception) {
+            return invalidResponse(request, exception.getMessage(), sessionService);
+        } catch (ReviewAlreadyExistsException exception) {
+            return conflictResponse(exception.getMessage(), sessionService.buildCookie(sessionId));
+        } catch (ReviewEventNotFoundException exception) {
+            return notFoundResponse(sessionService.buildCookie(sessionId), exception.getMessage());
+        }
+    }
+
+    @GetMapping("/events/{id}/reviews")
+    public ResponseEntity<?> getReviews(
+            HttpServletRequest request,
+            @PathVariable("id") String id,
+            @RequestParam Map<String, String> params
+    ) {
+        try {
+            var limit = parseOptionalUnsignedInt(params.get(LIMIT_PARAM), LIMIT_PARAM);
+            var offset = parseOptionalUnsignedInt(params.get(OFFSET_PARAM), OFFSET_PARAM);
+            return okResponse(
+                    sessionService.getResponseCookieOrNull(request.getCookies()),
+                    eventService.findReviews(id, limit, offset)
+            );
+        } catch (FieldInvalidException | ParameterInvalidException exception) {
+            return invalidResponse(request, exception.getMessage(), sessionService);
+        } catch (ReviewEventNotFoundException exception) {
+            return notFoundResponse(request, exception.getMessage(), sessionService);
+        }
+    }
+
+    @PatchMapping("/events/{eventId}/reviews/{reviewId}")
+    public ResponseEntity<?> updateReview(
+            HttpServletRequest request,
+            @PathVariable("eventId") String eventId,
+            @PathVariable("reviewId") String reviewId,
+            @RequestBody Map<String, Object> body
+    ) {
+        var sessionId = getAndRefreshSession(request);
+        if (sessionId == null) {
+            return unauthorizedEmptyResponse();
+        }
+        var userId = sessionService.getUserId(sessionId);
+        if (userId.isEmpty()) {
+            return unauthorizedEmptyResponse(sessionService.buildCookie(sessionId));
+        }
+
+        try {
+            eventService.updateReview(eventId, reviewId, UpdateReviewRequest.from(body), userId.get());
+            return noContentResponse(sessionService.buildCookie(sessionId));
+        } catch (FieldInvalidException exception) {
+            return invalidResponse(request, exception.getMessage(), sessionService);
+        } catch (ReviewEventNotFoundException exception) {
+            return notFoundResponse(sessionService.buildCookie(sessionId), exception.getMessage());
+        }
+    }
+
     private ResponseEntity<?> react(HttpServletRequest request, String id, boolean isLiked, boolean expireOnUnauthorized) {
         try {
             var sessionId = sessionService.refreshExistingSession(request.getCookies()).orElse(null);
@@ -132,5 +211,13 @@ public class EventController {
         } catch (EventNotFoundException exception) {
             return notFoundResponse(request, exception.getMessage(), sessionService);
         }
+    }
+
+    private String getAndRefreshSession(HttpServletRequest request) {
+        var sessionId = sessionService.findExistingSessionId(request.getCookies()).orElse(null);
+        if (sessionId != null) {
+            sessionService.refreshExistingSession(request.getCookies());
+        }
+        return sessionId;
     }
 }
