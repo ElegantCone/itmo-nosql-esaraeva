@@ -11,4 +11,5 @@ public class EventParams {
     public static final String FINISHED_AT_FIELD = "finished_at";
     public static final String DESCRIPTION_FIELD = "description";
     public static final String REACTIONS_FIELD = "reactions";
+    public static final String REVIEWS_FIELD = "reviews";
 }

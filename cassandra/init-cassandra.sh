@@ -42,6 +42,20 @@ ON event_reactions (like_value);
 
 CREATE INDEX IF NOT EXISTS event_reactions_created_by_idx
 ON event_reactions (created_by);
+
+CREATE TABLE IF NOT EXISTS event_reviews (
+  id uuid,
+  event_id text,
+  rating tinyint,
+  comment text,
+  created_by text,
+  created_at timestamp,
+  updated_at timestamp,
+  PRIMARY KEY ((event_id), created_by)
+);
+
+CREATE INDEX IF NOT EXISTS event_reviews_id_idx
+ON event_reviews (id);
 CQL
 }
 
