@@ -19,8 +19,6 @@ public class RedisReviewsRepository extends RedisHelper<EventReviewsResponse> {
     @Value("${APP_EVENT_REVIEWS_TTL}")
     private Long reviewsTtl;
 
-    private static final String PREFIX = "event:";
-    private static final String SUFFIX = ":reviews";
     public static final String countField = "count";
     public static final String ratingField = "rating";
 
@@ -55,6 +53,6 @@ public class RedisReviewsRepository extends RedisHelper<EventReviewsResponse> {
 
     private String buildKey(String eventName) {
         var md5 = DigestUtils.md5DigestAsHex(eventName.getBytes(StandardCharsets.UTF_8));
-        return PREFIX + md5 + SUFFIX;
+        return buildKey(EVENT_PREFIX, md5, REVIEWS_SUFFIX);
     }
 }
