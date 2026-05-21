@@ -1,13 +1,7 @@
 package nosql.service;
 
 import lombok.RequiredArgsConstructor;
-import nosql.api.dto.EventReviewsResponse;
-import nosql.api.dto.EventListItemResponse;
-import nosql.api.dto.EventsResponse;
-import nosql.api.dto.LocationResponse;
-import nosql.api.dto.ReactionsResponse;
-import nosql.api.dto.ReviewResponse;
-import nosql.api.dto.ReviewsResponse;
+import nosql.api.dto.*;
 import nosql.cassandra.CassandraReviewsRepository;
 import nosql.cassandra.CassandraReactionsRepository;
 import nosql.cassandra.EventReview;
@@ -20,6 +14,9 @@ import nosql.model.EventSearchCriteria;
 import nosql.model.UpdateEventRequest;
 import nosql.model.UpdateReviewRequest;
 import nosql.mongo.*;
+import nosql.neo4j.Neo4jRecommendationsRepository;
+import nosql.neo4j.RecommendedEventRef;
+import nosql.redis.RedisRecommendationsRepository;
 import nosql.redis.RedisReviewsRepository;
 import nosql.redis.RedisReactionsRepository;
 import nosql.utils.EventUtils.DuplicateEventException;
@@ -43,11 +40,15 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static nosql.mongo.EventRepository.EVENT_PROPERTY;
@@ -65,6 +66,8 @@ public class EventService {
     private final CassandraReviewsRepository cassandraReviewsRepository;
     private final RedisReactionsRepository redisReactionsRepository;
     private final RedisReviewsRepository redisReviewsRepository;
+    private final RedisRecommendationsRepository redisRecommendationsRepository;
+    private final Neo4jRecommendationsRepository neo4jRecommendationsRepository;
     private final MongoTemplate mongoTemplate;
 
     public String create(CreateEventRequest request, String userId) {
@@ -79,7 +82,9 @@ public class EventService {
                 .build();
 
         try {
-            return eventRepository.save(event).getId();
+            var savedEvent = eventRepository.save(event);
+            neo4jRecommendationsRepository.saveEvent(savedEvent);
+            return savedEvent.getId();
         } catch (DuplicateKeyException exception) {
             throw new DuplicateEventException();
         }
@@ -143,15 +148,27 @@ public class EventService {
         var event = eventRepository.findById(eventId).orElseThrow(EventNotFoundException::new);
         var existingReaction = cassandraReactionsRepository.findFirstByKeyEventIdAndKeyCreatedBy(eventId, userId);
         var previousIsLike = existingReaction != null ? existingReaction.isLike() : null;
-        var reaction = existingReaction == null?
+        var reaction = existingReaction == null ?
                 Reaction.builder()
                         .key(new ReactionKey(eventId, userId))
-                .build() :
+                        .build() :
                 existingReaction;
         reaction.setCreatedAt(Timestamp.from(Instant.now()));
         reaction.setLikeValue(isLiked ? 1 : -1);
         cassandraReactionsRepository.save(reaction);
+        if (isLiked) {
+            neo4jRecommendationsRepository.saveLike(userId, event.getId());
+        }
         refreshReactionsCache(event.getTitle(), previousIsLike, isLiked);
+    }
+
+    public RecommendationsResponse findRecommendations(String userId) {
+        var cached = redisRecommendationsRepository.getRecommendations(userId);
+        if (cached != null) {
+            return cached;
+        }
+        var recommendations = new RecommendationsResponse(buildRecommendations(userId));
+        return redisRecommendationsRepository.save(userId, recommendations);
     }
 
     public ReactionsResponse getReactionsByEventId(String eventId) {
@@ -344,11 +361,13 @@ public class EventService {
                 .createdAt(document.getCreatedAt())
                 .startedAt(document.getStartedAt())
                 .finishedAt(document.getFinishedAt());
-        if (criteria.includeReactions()) {
-            eventListBuilder.reactions(getReactionsByEventId(document.getId()));
-        }
-        if (criteria.includeReviews()) {
-            eventListBuilder.reviews(getReviewsByTitle(document.getTitle()));
+        if (criteria != null) {
+            if (criteria.includeReactions()) {
+                eventListBuilder.reactions(getReactionsByEventId(document.getId()));
+            }
+            if (criteria.includeReviews()) {
+                eventListBuilder.reviews(getReviewsByTitle(document.getTitle()));
+            }
         }
         var eventList = eventListBuilder.build();
         eventList.validate();
@@ -384,5 +403,64 @@ public class EventService {
         } catch (IllegalArgumentException exception) {
             return false;
         }
+    }
+
+    private List<EventListItemResponse> buildRecommendations(String userId) {
+        var recommendedRefs = neo4jRecommendationsRepository.findRecommendedEvents(userId);
+        if (recommendedRefs.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Long> likesByEventId = recommendedRefs.stream()
+                .collect(Collectors.toMap(
+                        RecommendedEventRef::eventId,
+                        RecommendedEventRef::likes,
+                        Long::sum
+                ));
+        var query = new Query().addCriteria(Criteria.where(EVENT_PROPERTY).in(likesByEventId.keySet()));
+        var candidatesByTitle = new HashMap<String, RecommendationCandidate>();
+        for (var document : mongoTemplate.find(query, EventDocument.class)) {
+            var likes = likesByEventId.get(document.getId());
+            if (likes == null) {
+                continue;
+            }
+            var candidate = new RecommendationCandidate(document, likes);
+            candidatesByTitle.merge(document.getTitle(), candidate, this::mergeRecommendationCandidates);
+        }
+
+        return candidatesByTitle.values().stream()
+                .sorted(Comparator.comparingLong(RecommendationCandidate::likes).reversed()
+                        .thenComparing(candidate -> parseDateTime(candidate.document().getStartedAt()))
+                        .thenComparing(candidate -> candidate.document().getId()))
+                .map(candidate -> toResponse(candidate.document(), null))
+                .toList();
+    }
+
+    private RecommendationCandidate mergeRecommendationCandidates(RecommendationCandidate first, RecommendationCandidate second) {
+        return new RecommendationCandidate(
+                nearestEvent(first.document(), second.document()),
+                first.likes() + second.likes()
+        );
+    }
+
+    private EventDocument nearestEvent(EventDocument first, EventDocument second) {
+        var result = parseDateTime(first.getStartedAt()).compareTo(parseDateTime(second.getStartedAt()));
+        if (result < 0) {
+            return first;
+        }
+        if (result > 0) {
+            return second;
+        }
+        return first.getId().compareTo(second.getId()) <= 0 ? first : second;
+    }
+
+    private OffsetDateTime parseDateTime(String value) {
+        return OffsetDateTime.parse(value, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+    }
+
+    private record RecommendationCandidate(
+            EventDocument document,
+            long likes
+    ) {
     }
 }
