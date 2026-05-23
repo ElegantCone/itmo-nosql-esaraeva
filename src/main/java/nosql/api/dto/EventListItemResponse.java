@@ -37,6 +37,8 @@ public class EventListItemResponse {
     String finishedAt;
     @JsonProperty(REACTIONS_FIELD)
     ReactionsResponse reactions;
+    @JsonProperty(REVIEWS_FIELD)
+    EventReviewsResponse reviews;
 
     public void validate() throws IllegalArgumentException {
         CommonUtils.validateStringField(id, ID_FIELD);

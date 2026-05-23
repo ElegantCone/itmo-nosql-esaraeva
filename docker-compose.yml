@@ -1,6 +1,6 @@
 services:
   backend:
-    image: lab5:1.0.0
+    image: lab6:1.0.0
     env_file:
       - .env.local
     build:

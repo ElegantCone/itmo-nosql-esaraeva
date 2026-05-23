@@ -1,21 +1,32 @@
 package nosql.service;
 
 import lombok.RequiredArgsConstructor;
+import nosql.api.dto.EventReviewsResponse;
 import nosql.api.dto.EventListItemResponse;
 import nosql.api.dto.EventsResponse;
 import nosql.api.dto.LocationResponse;
 import nosql.api.dto.ReactionsResponse;
+import nosql.api.dto.ReviewResponse;
+import nosql.api.dto.ReviewsResponse;
+import nosql.cassandra.CassandraReviewsRepository;
 import nosql.cassandra.CassandraReactionsRepository;
+import nosql.cassandra.EventReview;
 import nosql.cassandra.Reaction;
 import nosql.cassandra.ReactionKey;
+import nosql.cassandra.ReviewKey;
 import nosql.model.CreateEventRequest;
+import nosql.model.CreateReviewRequest;
 import nosql.model.EventSearchCriteria;
 import nosql.model.UpdateEventRequest;
+import nosql.model.UpdateReviewRequest;
 import nosql.mongo.*;
+import nosql.redis.RedisReviewsRepository;
 import nosql.redis.RedisReactionsRepository;
 import nosql.utils.EventUtils.DuplicateEventException;
 import nosql.utils.EventUtils.EventEditForbiddenException;
 import nosql.utils.EventUtils.EventNotFoundException;
+import nosql.utils.ReviewUtils.ReviewAlreadyExistsException;
+import nosql.utils.ReviewUtils.ReviewEventNotFoundException;
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
@@ -25,12 +36,17 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.Map;
+import java.time.ZoneId;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -46,7 +62,9 @@ public class EventService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final CassandraReactionsRepository cassandraReactionsRepository;
+    private final CassandraReviewsRepository cassandraReviewsRepository;
     private final RedisReactionsRepository redisReactionsRepository;
+    private final RedisReviewsRepository redisReviewsRepository;
     private final MongoTemplate mongoTemplate;
 
     public String create(CreateEventRequest request, String userId) {
@@ -97,14 +115,14 @@ public class EventService {
         var documentsStream = prepareDocumentsStream(query, criteria);
 
         var items = documentsStream
-                .map(e -> toResponse(e, criteria.includeReactions()))
+                .map(e -> toResponse(e, criteria))
                 .toList();
         return new EventsResponse(items, items.size());
     }
 
     public EventListItemResponse findById(String id, EventSearchCriteria criteria) {
         return eventRepository.findById(id)
-                .map(e -> toResponse(e, criteria.includeReactions()))
+                .map(e -> toResponse(e, criteria))
                 .orElseThrow(EventNotFoundException::new);
     }
 
@@ -116,7 +134,7 @@ public class EventService {
 
         var documentsStream = prepareDocumentsStream(query, criteria);
         var items = documentsStream
-                .map(e -> toResponse(e, criteria.includeReactions()))
+                .map(e -> toResponse(e, criteria))
                 .toList();
         return new EventsResponse(items, items.size());
     }
@@ -136,17 +154,78 @@ public class EventService {
         refreshReactionsCache(event.getTitle(), previousIsLike, isLiked);
     }
 
-    public Map<String, Long> getReactionsByEventId(String eventId) {
+    public ReactionsResponse getReactionsByEventId(String eventId) {
         var event = eventRepository.findById(eventId).orElseThrow(EventNotFoundException::new);
         return getReactionsByTitle(event.getTitle());
     }
 
-    private Map<String, Long> getReactionsByTitle(String title) {
+    public String createReview(String eventId, CreateReviewRequest request, String userId) {
+        var event = eventRepository.findById(eventId).orElseThrow(ReviewEventNotFoundException::new);
+        var existingReview = cassandraReviewsRepository.findFirstByKeyEventIdAndKeyCreatedBy(eventId, userId);
+        if (existingReview != null) {
+            throw new ReviewAlreadyExistsException();
+        }
+
+        var now = Timestamp.from(Instant.now());
+        var review = EventReview.builder()
+                .key(new ReviewKey(eventId, userId))
+                .id(UUID.randomUUID())
+                .comment(request.comment())
+                .rating(request.rating())
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        cassandraReviewsRepository.save(review);
+        rebuildReviewsCache(event.getTitle());
+        return review.getId().toString();
+    }
+
+    public ReviewsResponse findReviews(String eventId, Integer limit, Integer offset) {
+        eventRepository.findById(eventId).orElseThrow(ReviewEventNotFoundException::new);
+        Stream<EventReview> stream = cassandraReviewsRepository.findReviewsByKeyEventId(eventId).stream()
+                .sorted(Comparator.comparing(EventReview::getCreatedAt).reversed());
+        if (offset != null) {
+            stream = stream.skip(offset);
+        }
+        if (limit != null) {
+            stream = stream.limit(limit);
+        }
+        List<ReviewResponse> reviews = stream.map(this::toReviewResponse).toList();
+        return new ReviewsResponse(reviews, reviews.size());
+    }
+
+    public void updateReview(String eventId, String reviewId, UpdateReviewRequest request, String userId) {
+        var event = eventRepository.findById(eventId).orElseThrow(ReviewEventNotFoundException::new);
+        var review = cassandraReviewsRepository.findFirstByKeyEventIdAndKeyCreatedBy(eventId, userId);
+        if (review == null || !reviewIdMatches(review, reviewId)) {
+            throw new ReviewEventNotFoundException();
+        }
+
+        if (request.comment() != null) {
+            review.setComment(request.comment());
+        }
+        if (request.rating() != null) {
+            review.setRating(request.rating());
+        }
+        review.setUpdatedAt(Timestamp.from(Instant.now()));
+        cassandraReviewsRepository.save(review);
+        rebuildReviewsCache(event.getTitle());
+    }
+
+    private ReactionsResponse getReactionsByTitle(String title) {
         var cached = redisReactionsRepository.getReactions(title);
         if (cached != null) {
             return cached;
         }
         return rebuildReactionsCache(title);
+    }
+
+    private EventReviewsResponse getReviewsByTitle(String title) {
+        var cached = redisReviewsRepository.getReviews(title);
+        if (cached != null) {
+            return cached;
+        }
+        return rebuildReviewsCache(title);
     }
 
     private void refreshReactionsCache(String title, Boolean previousIsLike, boolean currentIsLike) {
@@ -158,7 +237,7 @@ public class EventService {
         }
     }
 
-    private Map<String, Long> rebuildReactionsCache(String title) {
+    private ReactionsResponse rebuildReactionsCache(String title) {
         var query = new Query().addCriteria(Criteria.where(TITLE_FIELD).is(title));
         var eventsWithSameTitle = mongoTemplate.find(query, EventDocument.class);
         long likes = 0;
@@ -176,10 +255,27 @@ public class EventService {
             return redisReactionsRepository.save(title, likes, dislikes);
         }
         redisReactionsRepository.remove(title);
-        return Map.of(
-                RedisReactionsRepository.likesField, 0L,
-                RedisReactionsRepository.dislikesField, 0L
-        );
+        return new ReactionsResponse(0L, 0L);
+    }
+
+    private EventReviewsResponse rebuildReviewsCache(String title) {
+        var query = new Query().addCriteria(Criteria.where(TITLE_FIELD).is(title));
+        var eventsWithSameTitle = mongoTemplate.find(query, EventDocument.class);
+        long count = 0;
+        long ratingSum = 0;
+        for (var eventDocument : eventsWithSameTitle) {
+            var reviews = cassandraReviewsRepository.findReviewsByKeyEventId(eventDocument.getId());
+            count += reviews.size();
+            ratingSum += reviews.stream().mapToLong(EventReview::getRating).sum();
+        }
+        if (count == 0) {
+            redisReviewsRepository.remove(title);
+            return new EventReviewsResponse(0, 0.0);
+        }
+        var rating = BigDecimal.valueOf((double) ratingSum / count)
+                .setScale(1, RoundingMode.HALF_UP)
+                .doubleValue();
+        return redisReviewsRepository.save(title, count, rating);
     }
 
     private Stream<EventDocument> prepareDocumentsStream(Query query, EventSearchCriteria criteria) {
@@ -236,7 +332,7 @@ public class EventService {
         return dateTo == null || !startedDate.isAfter(dateTo);
     }
 
-    private EventListItemResponse toResponse(EventDocument document, boolean includeReactions) {
+    private EventListItemResponse toResponse(EventDocument document, EventSearchCriteria criteria) {
         var eventListBuilder = EventListItemResponse.builder()
                 .id(document.getId())
                 .title(document.getTitle())
@@ -248,14 +344,11 @@ public class EventService {
                 .createdAt(document.getCreatedAt())
                 .startedAt(document.getStartedAt())
                 .finishedAt(document.getFinishedAt());
-        if (includeReactions) {
-            var reactions = getReactionsByEventId(document.getId());
-            eventListBuilder.reactions(
-                    new ReactionsResponse(
-                            reactions.getOrDefault(RedisReactionsRepository.likesField, 0L),
-                            reactions.getOrDefault(RedisReactionsRepository.dislikesField, 0L)
-                    )
-            );
+        if (criteria.includeReactions()) {
+            eventListBuilder.reactions(getReactionsByEventId(document.getId()));
+        }
+        if (criteria.includeReviews()) {
+            eventListBuilder.reviews(getReviewsByTitle(document.getTitle()));
         }
         var eventList = eventListBuilder.build();
         eventList.validate();
@@ -265,5 +358,31 @@ public class EventService {
     private LocationResponse toLocationResponse(EventLocation location) {
         if (location == null) return null;
         return new LocationResponse(location.city(), location.address());
+    }
+
+    private ReviewResponse toReviewResponse(EventReview review) {
+        return new ReviewResponse(
+                review.getId().toString(),
+                review.getEventId(),
+                review.getComment(),
+                formatTimestamp(review.getCreatedAt()),
+                review.getCreatedBy(),
+                review.getRating(),
+                formatTimestamp(review.getUpdatedAt())
+        );
+    }
+
+    private String formatTimestamp(Timestamp timestamp) {
+        return OffsetDateTime.ofInstant(timestamp.toInstant(), ZoneId.systemDefault())
+                .withNano(0)
+                .toString();
+    }
+
+    private boolean reviewIdMatches(EventReview review, String reviewId) {
+        try {
+            return review.getId().equals(UUID.fromString(reviewId));
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
     }
 }
