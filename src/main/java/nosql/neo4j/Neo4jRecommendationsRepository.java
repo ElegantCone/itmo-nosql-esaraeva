@@ -45,16 +45,17 @@ public class Neo4jRecommendationsRepository {
         }
     }
 
-    public void saveLike(String userId, String eventId) {
+    public void saveLike(String userId, EventDocument event) {
         try (var session = driver.session()) {
             session.executeWrite(transaction -> {
                 transaction.run(
                         """
-                        MATCH (user:User {id: $userId})
-                        MATCH (event:Event {id: $eventId})
+                        MERGE (user:User {id: $userId})
+                        MERGE (event:Event {id: $eventId})
+                        ON CREATE SET event.title = $title
                         MERGE (user)-[:LIKED]->(event)
                         """,
-                        parameters(USER_ID, userId, EVENT_ID, eventId)
+                        parameters(USER_ID, userId, EVENT_ID, event.getId(), TITLE, event.getTitle())
                 ).consume();
                 return null;
             });

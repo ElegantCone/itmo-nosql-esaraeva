@@ -157,7 +157,7 @@ public class EventService {
         reaction.setLikeValue(isLiked ? 1 : -1);
         cassandraReactionsRepository.save(reaction);
         if (isLiked) {
-            neo4jRecommendationsRepository.saveLike(userId, event.getId());
+            neo4jRecommendationsRepository.saveLike(userId, event);
         }
         refreshReactionsCache(event.getTitle(), previousIsLike, isLiked);
     }
