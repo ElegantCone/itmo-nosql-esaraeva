@@ -2,12 +2,14 @@ package nosql.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import static nosql.params.UserRequestParams.*;
+
 public record UserResponse(
-        @JsonProperty("id")
+        @JsonProperty(USER_ID)
         String id,
-        @JsonProperty("full_name")
+        @JsonProperty(FULL_NAME_FIELD)
         String fullName,
-        @JsonProperty("username")
+        @JsonProperty(USERNAME_FIELD)
         String username
 ) {
 }

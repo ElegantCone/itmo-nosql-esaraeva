@@ -17,8 +17,6 @@ public class RedisReactionsRepository extends RedisHelper<ReactionsResponse> {
     @Getter
     @Value("${APP_LIKE_TTL}")
     private Long likeTtl;
-    private final static String PREFIX = "event:";
-    public static final String SUFFIX = ":reactions";
     public static final String likesField = "likes";
     public static final String dislikesField = "dislikes";
 
@@ -71,6 +69,6 @@ public class RedisReactionsRepository extends RedisHelper<ReactionsResponse> {
 
     private String buildKey(String eventName) {
         var md5 = DigestUtils.md5DigestAsHex(eventName.getBytes(StandardCharsets.UTF_8));
-        return PREFIX + md5 + SUFFIX;
+        return buildKey(EVENT_PREFIX, md5, REACTIONS_SUFFIX);
     }
 }

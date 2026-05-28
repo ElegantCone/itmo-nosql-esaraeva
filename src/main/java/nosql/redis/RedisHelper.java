@@ -10,6 +10,11 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public abstract class RedisHelper<T> {
     protected final StringRedisTemplate redisTemplate;
+    public static final String EVENT_PREFIX = "event:";
+    public static final String USER_PREFIX = "user:";
+    public static final String RECOMMENDATIONS_SUFFIX = ":recomms";
+    public static final String REACTIONS_SUFFIX = ":reactions";
+    public static final String REVIEWS_SUFFIX = ":reviews";
 
     public T getObjects(String key, Function<Map<String, String>, T> function) {
         if (!redisTemplate.hasKey(key)) {
@@ -23,5 +28,9 @@ public abstract class RedisHelper<T> {
                                 ), function
                         )
                 );
+    }
+
+    protected String buildKey(String prefix, String identifier, String suffix) {
+        return prefix + identifier + suffix;
     }
 }

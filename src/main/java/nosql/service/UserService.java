@@ -6,6 +6,7 @@ import nosql.model.CreateUserRequest;
 import nosql.model.UserSearchCriteria;
 import nosql.mongo.UserDocument;
 import nosql.mongo.UserRepository;
+import nosql.neo4j.Neo4jRecommendationsRepository;
 import nosql.params.UserRequestParams;
 import nosql.utils.UserUtils.UserAlreadyExistsException;
 import nosql.utils.UserUtils.UserNotFoundException;
@@ -29,6 +30,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final MongoTemplate mongoTemplate;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final Neo4jRecommendationsRepository neo4jRecommendationsRepository;
 
     public String create(CreateUserRequest request) {
         var user = UserDocument.builder()
@@ -38,7 +40,9 @@ public class UserService {
                 .build();
 
         try {
-            return userRepository.save(user).getId();
+            var savedUser = userRepository.save(user);
+            neo4jRecommendationsRepository.saveUser(savedUser.getId());
+            return savedUser.getId();
         } catch (DuplicateKeyException exception) {
             throw new UserAlreadyExistsException();
         }

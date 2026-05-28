@@ -1,0 +1,388 @@
+{
+  "info": {
+    "_postman_id": "1daf53ea-3af2-4bff-896f-0e9582fa4787",
+    "name": "Lab7",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "24915633",
+    "_collection_link": "https://go.postman.co/collection/24915633-1daf53ea-3af2-4bff-896f-0e9582fa4787?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Create user",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"full_name\": \"Джон Доу\",\n    \"username\": \"j0hnd0e42\",\n    \"password\": \"svp4_dvp4_str0ng_passw0rd\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"j0hnd0e42\",\n    \"password\": \"svp4_dvp4_str0ng_passw0rd\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create event1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"title\": \"Мой день рождения1\",\n    \"address\": \"г. Санкт-Петербург, ул. Пушкина, дом Колотушкина\",\n    \"started_at\": \"2026-04-10T12:00:00+03:00\",\n    \"finished_at\": \"2026-04-15T23:00:00+03:00\",\n    \"description\": \"Приглашаю вас отпраздновать мое 30-с-чем-то-летие\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/events",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create event2",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"title\": \"Мой день рождения2\",\n    \"address\": \"г. Санкт-Петербург, ул. Пушкина, дом Колотушкина\",\n    \"started_at\": \"2026-04-11T12:00:00+03:00\",\n    \"finished_at\": \"2026-04-15T23:00:00+03:00\",\n    \"description\": \"Приглашаю вас отпраздновать мое 30-с-чем-то-летие\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/events",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create event3",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"title\": \"Мой день рождения3\",\n    \"address\": \"г. Санкт-Петербург, ул. Пушкина, дом Колотушкина\",\n    \"started_at\": \"2026-04-11T13:00:00+03:00\",\n    \"finished_at\": \"2026-04-15T23:00:00+03:00\",\n    \"description\": \"Приглашаю вас отпраздновать мое 30-с-чем-то-летие\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/events",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Like event3 by user1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/events/6a0f1f542c5b23b2c9fe0584/like",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events",
+            "6a0f1f542c5b23b2c9fe0584",
+            "like"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Like event1 by user1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/events/6a0f1f442c5b23b2c9fe0582/like",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events",
+            "6a0f1f442c5b23b2c9fe0582",
+            "like"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create user2",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"full_name\": \"Джон Доу2\",\n    \"username\": \"j0hnd0e422\",\n    \"password\": \"svp4_dvp4_str0ng_passw0rd\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/users",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login user2",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"username\": \"j0hnd0e422\",\n    \"password\": \"svp4_dvp4_str0ng_passw0rd\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Like event3 by user2",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/events/6a0f1f542c5b23b2c9fe0584/like",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events",
+            "6a0f1f542c5b23b2c9fe0584",
+            "like"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Like event2 by user2",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/events/6a0f1f472c5b23b2c9fe0583/like",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "events",
+            "6a0f1f472c5b23b2c9fe0583",
+            "like"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get recommendations",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/recommendations",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "recommendations"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Logout Copy",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "type": "text",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/auth/logout",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "auth",
+            "logout"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
